@@ -31,7 +31,13 @@ main{width:100%;max-width:1100px;margin:0 auto;padding:8px 20px 32px;flex:1}
 h2{font-size:20px;margin:24px 0 14px;font-weight:700;display:flex;align-items:center;gap:8px}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;align-items:start}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;align-items:stretch}
+.pnl{background:#fff;border:1px solid var(--bd);border-radius:16px;box-shadow:var(--sh);padding:14px;display:flex;flex-direction:column;gap:12px;min-height:280px;text-align:center}
+.pnl h2.pt{margin:0;justify-content:center;text-align:center;background:var(--gl);color:var(--gd);border-radius:12px;padding:12px 10px;font-size:18px}
+.pnl .card{margin:0;box-shadow:none;background:#fafcfb;align-items:stretch}
+.pnl .card .ph{justify-content:center;text-align:center;flex-direction:column;gap:8px}
+.pnl .empty{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:12px}
+@media(max-width:700px){.pnl{min-height:0}.pnl .empty{min-height:90px}}
 .card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;margin-bottom:10px;box-shadow:var(--sh)}
 .grid .card{margin:0}
 .ch{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
@@ -48,8 +54,8 @@ button.sec{background:#e9eeeb;color:#2f4139}
 button.sec:hover{background:#dbe3df}
 button.out{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.55);min-height:40px;padding:0 16px}
 button.out:hover{background:rgba(255,255,255,.28)}
-.link{background:none;color:var(--g);padding:0;min-height:40px;text-decoration:underline;font-weight:600}
-.link:hover{background:none;color:var(--gd)}
+.link{background:#fff;color:var(--g);border:2px solid var(--g);min-height:46px;padding:0 18px;text-decoration:none;font-weight:700}
+.link:hover{background:var(--gl);color:var(--gd)}
 
 label{font-size:14px;font-weight:600;color:#33453c;display:block;margin-bottom:4px}
 input,select,textarea{padding:0 14px;min-height:46px;border:1px solid #c6d2cb;border-radius:10px;font:inherit;width:100%;background:#fff;color:var(--tx)}
@@ -64,7 +70,8 @@ input:focus,select:focus,textarea:focus{outline:3px solid rgba(0,132,61,.22);bor
 .disponivel,.devolvida{background:#dcfce7;color:#166534}
 .reservada,.solicitada,.devolucao{background:#fef3c7;color:#92400e}
 .em_uso,.retirada{background:#fee2e2;color:#991b1b}
-.cancelada{background:#e5e7eb;color:#475569}
+.cancelada,.expirada{background:#e5e7eb;color:#475569}
+.cd{font-variant-numeric:tabular-nums;font-weight:700;color:var(--r)}
 .n{background:var(--g);color:#fff;border-radius:99px;padding:1px 10px;font-size:13px;font-weight:700}
 
 .tw{overflow-x:auto;background:#fff;border:1px solid var(--bd);border-radius:14px;margin-top:12px;box-shadow:var(--sh)}
@@ -104,12 +111,49 @@ header small a{color:#fff;font-weight:600}
 .dlg .row button{flex:1}
 button.dg{background:var(--r)}
 button.dg:hover{background:#a81418}
+button.dgo{background:#fff;color:var(--r);border:2px solid var(--r)}
+button.dgo:hover{background:#fdecec}
+main button:not(.chip),.login button,.dlg button{box-shadow:0 1px 3px rgba(16,40,28,.22)}
+.hold{background:var(--gl);border-radius:10px;padding:8px 10px}
+.hold small{color:var(--tx)}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;min-height:62px}
+.opt:hover{background:var(--gl)}
+.opt .ot{flex:1;display:flex;flex-direction:column;min-width:0}
+.opt .ot small{overflow-wrap:anywhere}
+.opt .oa{color:var(--g);font-size:24px;font-weight:700;line-height:1}
+.opts{display:flex;flex-direction:column;gap:8px}
 
 pre{background:#0f172a;color:#e2e8f0;padding:14px;border-radius:12px;overflow:auto;font-size:12.5px;line-height:1.5}
 code{background:#e9eeeb;padding:1px 6px;border-radius:5px;font-size:13px}
 ol li{margin-bottom:8px}
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:12px 18px;border-radius:10px;display:none;z-index:60;max-width:90vw;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:15px}
 #toast.err{background:#b91c1c}
+.pcard{background:var(--gl);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.pg{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.pi{background:#fff;border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;min-width:0}
+.pi span{font-weight:600;overflow-wrap:anywhere}
+.pst{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.pst div{background:#fff;border-radius:10px;padding:8px}
+.pst b{display:block;font-size:22px;color:var(--gd)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:14px}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:14px;box-shadow:var(--sh);padding:14px 10px;text-align:center}
+.kpi b{display:block;font-size:26px;line-height:1.15;color:var(--gd)}
+.kpi.r b{color:var(--r)}
+.kpi small{display:block;margin-top:4px}
+.dg2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px}
+.cardx{background:#fff;border:1px solid var(--bd);border-radius:14px;box-shadow:var(--sh);padding:16px}
+.cardx h3{margin:0 0 12px;font-size:16px}
+.hb2{display:grid;grid-template-columns:minmax(70px,38%) 1fr 34px;gap:8px;align-items:center;font-size:14px;margin-bottom:8px}
+.hb2 .hl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb2 .ht{background:var(--gl);border-radius:99px;height:12px;overflow:hidden}
+.hb2 .ht i{display:block;height:100%;background:var(--g);border-radius:99px}
+.hb2 b{text-align:right}
+.cc{display:flex;align-items:flex-end;gap:2px;height:120px}
+.cb{flex:1;height:100%;display:flex;align-items:flex-end;background:#f6f9f7;border-radius:3px 3px 0 0}
+.cb i{display:block;width:100%;background:var(--g);border-radius:3px 3px 0 0}
+.cx{display:flex;justify-content:space-between;font-size:12px;color:var(--mu);margin-top:4px}
+.stk{display:flex;height:18px;border-radius:99px;overflow:hidden;background:#e5e7eb;margin-bottom:8px}
+.stk i{display:block;height:100%}
 .demo{background:#fef3c7;color:#92400e;padding:8px 20px;font-size:13px;text-align:center}
 
 .av{width:40px;height:40px;border-radius:50%;object-fit:cover;background:var(--gl);color:var(--gd);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:0 0 auto;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
@@ -264,9 +308,18 @@ const T = {
   receive:  {from:'devolucao',  to:'devolvida', ts:'tDev',    who:'guardaDev', key:'disponivel'},
   cancel:   {from:'solicitada', to:'cancelada', ts:'tCanc',                    key:'disponivel'}
 };
+T.expire = {from:'solicitada', to:'cancelada', ts:'tCanc', key:'disponivel', extra:{expirada:true}};
+const TTL = 3 * 60 * 1000;
+const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+const cd = r => `<span class="cd" data-exp="${r.tSol + TTL}">${mmss(r.tSol + TTL - Date.now())}</span>`;
+const keyUp = (t, r) => t.key === 'disponivel'
+  ? {status:t.key, portador:null, portadorId:null, desde:null}
+  : {status:t.key, portador:r.userName, portadorId:r.userId, ...(t.ts === 'tRet' ? {desde:Date.now()} : {})};
 const L = {disponivel:'Disponível', reservada:'Aguardando entrega', em_uso:'Em uso', solicitada:'Aguardando entrega',
-  retirada:'Em uso', devolucao:'Aguardando recebimento', devolvida:'Devolvida', cancelada:'Cancelada'};
+  retirada:'Em uso', devolucao:'Aguardando recebimento', devolvida:'Devolvida', cancelada:'Cancelada', expirada:'Expirada'};
 const badge = s => `<span class="b ${s}">${L[s]}</span>`;
+const holder = k => k.status !== 'disponivel' && k.portador
+  ? `<div class="ph hold">${av(k.portador, fotoDe(k.portadorId), 'sm')}<small>${k.status === 'reservada' ? 'Reservada por' : 'Em posse de'} <b>${esc(k.portador)}</b><br>${k.status === 'reservada' ? `Retirar na guarita em <span class="cd" data-exp="${k.desde + TTL}">${mmss(k.desde + TTL - Date.now())}</span>` : 'Retirada em ' + fmt(k.desde)}</small></div>` : '';
 const CARGOS = ['Professor', 'Administrativo (TAE)', 'Terceirizado', 'Guarda'];
 const idTxt = u => u.siape && u.siape !== '—' ? `${u.idTipo || 'SIAPE'}: ${u.siape}` : '—';
 
@@ -305,15 +358,15 @@ function makeDemo() {
     async request(k, u) {
       const kk = d.keys.find(x => x.id === k.id);
       if (kk.status !== 'disponivel') throw Error('Chave indisponível.');
-      kk.status = 'reservada';
+      Object.assign(kk, {status:'reservada', portador:u.nome, portadorId:u.uid, desde:Date.now()});
       d.reqs.unshift({id:uid(), keyId:kk.id, keyName:kk.nome, userId:u.uid, userName:u.nome, status:'solicitada', tSol:Date.now()});
       emit();
     },
     async act(a, id, u) {
       const t = T[a], r = d.reqs.find(x => x.id === id);
       if (r.status !== t.from) throw Error('Status já foi alterado.');
-      r.status = t.to; r[t.ts] = Date.now(); if (t.who) r[t.who] = u.nome;
-      d.keys.find(x => x.id === r.keyId).status = t.key; emit();
+      r.status = t.to; r[t.ts] = Date.now(); if (t.who) r[t.who] = u.nome; Object.assign(r, t.extra);
+      Object.assign(d.keys.find(x => x.id === r.keyId), keyUp(t, r)); emit();
     },
     async addKey(k) { d.keys.push({id:uid(), ...k, status:'disponivel'}); emit(); },
     async delKey(id) { d.keys = d.keys.filter(x => x.id !== id); emit(); },
@@ -324,6 +377,7 @@ function makeDemo() {
     async rejectUser(id) { d.users = d.users.filter(x => x.uid !== id); emit(); },
     async me() { return S.user; },
     async setFoto(id, f) { d.users.find(x => x.uid === id).foto = f; emit(); },
+    async saveProfile(id, data) { Object.assign(d.users.find(x => x.uid === id), data); emit(); },
     async requestFoto(id, f) { d.users.find(x => x.uid === id).fotoPendente = f; emit(); },
     async approveFoto(id, f) { const u = d.users.find(x => x.uid === id); u.foto = f; delete u.fotoPendente; emit(); },
     async rejectFoto(id) { delete d.users.find(x => x.uid === id).fotoPendente; emit(); }
@@ -387,7 +441,8 @@ async function makeFB() {
         F.onSnapshot(col('keys'), s => { st.keys = s.docs.map(d => ({id:d.id, ...d.data()})); emit(); }),
         F.onSnapshot(q, s => { st.reqs = s.docs.map(d => ({id:d.id, ...d.data()})).sort((a, b) => b.tSol - a.tSol); emit(); }, e => toast(msg(e), 1))
       ];
-      if (u.role !== 'funcionario') un.push(F.onSnapshot(col('users'), s => { st.users = s.docs.map(d => ({uid:d.id, ...d.data()})); emit(); }));
+      un.push(F.onSnapshot(col('users'), s => { st.users = s.docs.map(d => ({uid:d.id, ...d.data()})); emit(); }));
+      if (u.role === 'funcionario') un.push(F.onSnapshot(F.query(col('requests'), F.orderBy('tSol', 'desc'), F.limit(500)), s => { st.all = s.docs.map(d => d.data()); emit(); }, () => {}));
       return () => un.forEach(f => f());
     },
     async request(k, u) {
@@ -395,7 +450,7 @@ async function makeFB() {
       await F.runTransaction(db, async t => {
         const s = await t.get(kr);
         if (s.data().status !== 'disponivel') throw Error('Chave indisponível.');
-        t.update(kr, {status:'reservada'});
+        t.update(kr, {status:'reservada', portador:u.nome, portadorId:u.uid, desde:Date.now()});
         t.set(rr, {keyId:k.id, keyName:k.nome, userId:u.uid, userName:u.nome, status:'solicitada', tSol:Date.now()});
       });
     },
@@ -406,8 +461,9 @@ async function makeFB() {
         if (r.status !== t.from) throw Error('Status já foi alterado.');
         const up = {status:t.to, [t.ts]:Date.now()};
         if (t.who) up[t.who] = u.nome;
+        Object.assign(up, t.extra);
         tx.update(rr, up);
-        tx.update(ref('keys', r.keyId), {status:t.key});
+        tx.update(ref('keys', r.keyId), keyUp(t, r));
       });
     },
     addKey(k) { return F.addDoc(col('keys'), {...k, status:'disponivel'}); },
@@ -418,6 +474,7 @@ async function makeFB() {
     reactivate(id) { return F.updateDoc(ref('users', id), {suspenso:false, motivoSusp:F.deleteField(), suspPor:F.deleteField(), tSusp:F.deleteField()}); },
     rejectUser(id) { return F.deleteDoc(ref('users', id)); },
     setFoto(id, foto) { return F.updateDoc(ref('users', id), {foto}); },
+    saveProfile(id, data) { return F.updateDoc(ref('users', id), data); },
     requestFoto(id, fotoPendente) { return F.updateDoc(ref('users', id), {fotoPendente}); },
     approveFoto(id, foto) { return F.updateDoc(ref('users', id), {foto, fotoPendente:F.deleteField()}); },
     rejectFoto(id) { return F.updateDoc(ref('users', id), {fotoPendente:F.deleteField()}); },
@@ -428,15 +485,15 @@ async function makeFB() {
 const B = firebaseConfig.apiKey === 'SUA_API_KEY' ? makeDemo() : await makeFB();
 
 /* ===================== ESTADO E VIEWS ===================== */
-const S = {user:null, data:{keys:[], reqs:[], users:[]}, tab:null, q:'', mode:'login', fs:'todos', per:'30', lim:30};
+const S = {user:null, data:{keys:[], reqs:[], users:[]}, tab:null, q:'', mode:'login', fs:'todos', per:'30', lim:30, dp:'30'};
 const TABS = {
-  funcionario: [['minhas','Minhas chaves'], ['unidade','Chaves da unidade'], ['hist','Meu histórico']],
-  guarda: [['fila','Guarita'], ['hist','Histórico']],
-  admin: [['fila','Guarita'], ['sol','Solicitações'], ['hist','Histórico'], ['keys','Gerenciar chaves'], ['users','Usuários'], ['guia','Guia de implantação']]
+  funcionario: [['minhas','Minhas chaves'], ['unidade','Pegar chave'], ['hist','Meu histórico'], ['dash','Estatísticas']],
+  guarda: [['fila','Entregar e receber'], ['hist','Histórico'], ['dash','Estatísticas']],
+  admin: [['fila','Entregar e receber'], ['sol','Aprovar cadastros'], ['hist','Histórico'], ['dash','Estatísticas'], ['keys','Cadastro de chaves'], ['users','Usuários'], ['guia','Ajuda e implantação']]
 };
 const ROLE = {funcionario:'Funcionário', guarda:'Guarda', admin:'Administrador'};
-const IC = {minhas:'🔑', unidade:'🏫', hist:'🕘', fila:'🛎️', sol:'📥', keys:'⚙️', users:'👥', guia:'📖'};
-const SH = {minhas:'Minhas', unidade:'Unidade', hist:'Histórico', fila:'Guarita', sol:'Pedidos', keys:'Chaves', users:'Usuários', guia:'Guia'};
+const IC = {minhas:'🔑', unidade:'🏫', hist:'🕘', fila:'🛎️', sol:'📥', keys:'⚙️', users:'👥', guia:'📖', dash:'📊'};
+const SH = {minhas:'Minhas', unidade:'Pegar', hist:'Histórico', fila:'Entregas', sol:'Cadastros', keys:'Chaves', users:'Usuários', guia:'Ajuda', dash:'Estatísticas'};
 
 const pend = () => (S.user.role === 'funcionario' && S.user.cargo === 'Guarda')
   ? `<div class="note">Seu cadastro como Guarda aguarda liberação do administrador. Enquanto isso, você tem acesso de funcionário.</div>` : '';
@@ -446,38 +503,39 @@ const vMinhas = () => {
   return pend() + `<h2>Minhas chaves</h2>` + (mine.length
     ? `<div class="grid">${mine.map(r => `<div class="card"><div class="ch"><b>${esc(r.keyName)}</b>${badge(r.status)}</div>
       <small>Solicitada: ${fmt(r.tSol)}${r.tRet ? `<br>Retirada: ${fmt(r.tRet)}` : ''}</small>
-      ${r.status === 'solicitada' ? `<p class="hint">Vá até a guarita para retirar.</p><button class="sec" data-a="cancel" data-id="${r.id}">Cancelar solicitação</button>`
+      ${r.status === 'solicitada' ? `<p class="hint">Retire na guarita em <b>${cd(r)}</b> ou a reserva será cancelada.</p><button class="dg" data-a="cancel" data-id="${r.id}">Cancelar solicitação</button>`
       : r.status === 'retirada' ? `<p class="hint">Clique ao entregar a chave na guarita.</p><button data-a="giveBack" data-id="${r.id}">Devolver chave</button>`
       : `<p class="hint">Aguardando o guarda confirmar o recebimento.</p>`}</div>`).join('')}</div>`
-    : `<div class="empty">Nenhuma chave em seu nome.<br><small>Acesse a aba Chaves da unidade para solicitar.</small></div>`);
+    : `<div class="empty">Nenhuma chave em seu nome.<br><small>Toque em Pegar chave para solicitar uma.</small></div>`);
 };
 
-const vUnidade = () => pend() + `<h2>Chaves da unidade</h2>` + (S.data.keys.length
-  ? `<div class="grid">${S.data.keys.map(k => `<div class="card"><div class="ch"><b>${esc(k.nome)}</b>${badge(k.status)}</div><small>${esc(k.local)}</small>
-    ${k.status === 'disponivel' ? `<button data-a="request" data-id="${k.id}">Solicitar chave</button>` : ''}</div>`).join('')}</div>`
+const vUnidade = () => pend() + `<h2>Pegar uma chave</h2>` + (S.data.keys.length
+  ? `<div class="grid">${S.data.keys.map(k => `<div class="card"><div class="ch"><b>${esc(k.nome)}</b>${badge(k.status)}</div><small>${esc(k.local)}</small>${holder(k)}
+    ${k.status === 'disponivel' ? `<button data-a="request" data-id="${k.id}">Solicitar esta chave</button>` : `<button class="sec" disabled>Indisponível</button>`}</div>`).join('')}</div>`
   : `<div class="empty">Nenhuma chave cadastrada.</div>`);
 
 const vFila = () => {
   const by = s => S.data.reqs.filter(r => r.status === s);
-  const col = (title, list, btn, act, empty) => `<div><h2>${title} <span class="n">${list.length}</span></h2>
-    ${list.length ? list.map(r => `<div class="card"><div class="ph">${av(r.userName, fotoDe(r.userId), 'md')}<div><b>${esc(r.keyName)}</b><br><small>${esc(r.userName)} · ${fmt(r.tDevSol || r.tRet || r.tSol)}</small></div></div>
+  const col = (title, list, btn, act, empty) => `<div class="pnl"><h2 class="pt">${title} <span class="n">${list.length}</span></h2>
+    ${list.length ? list.map(r => `<div class="card"><div class="ph">${av(r.userName, fotoDe(r.userId), 'md')}<div><b>${esc(r.keyName)}</b><br><small>${esc(r.userName)} · ${fmt(r.tDevSol || r.tRet || r.tSol)}${r.status === 'solicitada' ? ` · ⏱ ${cd(r)}` : ''}</small></div></div>
     ${btn ? `<button data-a="${act}" data-id="${r.id}">${btn}</button>` : ''}</div>`).join('') : `<div class="empty">${empty}</div>`}</div>`;
   return `<div class="cols">
-    ${col('Para entregar', by('solicitada'), 'Entregar chave', 'deliver', 'Nenhuma solicitação.')}
-    ${col('Para receber', by('devolucao'), 'Confirmar recebimento', 'receive', 'Nenhuma devolução pendente.')}
-    ${col('Em uso', by('retirada'), '', '', 'Nenhuma chave em uso.')}</div>`;
+    ${col('Entregar chaves', by('solicitada'), 'Entregar ao funcionário', 'deliver', 'Nenhuma chave para entregar.')}
+    ${col('Receber devoluções', by('devolucao'), 'Receber chave devolvida', 'receive', 'Nenhuma devolução pendente.')}
+    ${col('Chaves em uso', by('retirada'), '', '', 'Nenhuma chave em uso.')}</div>`;
 };
 
 const DAY = 864e5, ABERTO = ['solicitada','retirada','devolucao'];
 const FS = [['todos','Todos'], ['andamento','Em andamento'], ['devolvida','Devolvidas'], ['cancelada','Canceladas']];
-const PER = [['7','Últimos 7 dias'], ['30','Últimos 30 dias'], ['90','Últimos 90 dias'], ['all','Todo o período']];
+const PER = [['1','Hoje'], ['7','Últimos 7 dias'], ['30','Últimos 30 dias'], ['90','Últimos 90 dias'], ['all','Todo o período']];
+const since = p => { if (p === 'all') return 0; if (p === '1') { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); } return Date.now() - (+p) * DAY; };
 const dayLabel = t => {
   const z = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const d = new Date(t), diff = Math.round((z(new Date()) - z(d)) / DAY);
   return diff === 0 ? 'Hoje' : diff === 1 ? 'Ontem' : d.toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
 };
 const histList = () => {
-  const q = S.q.toLowerCase(), from = S.per === 'all' ? 0 : Date.now() - (+S.per) * DAY;
+  const q = S.q.toLowerCase(), from = since(S.per);
   return S.data.reqs.filter(r => r.tSol >= from
     && (S.fs === 'todos' || (S.fs === 'andamento' ? ABERTO.includes(r.status) : r.status === S.fs))
     && (!q || (r.keyName + ' ' + r.userName + ' ' + L[r.status]).toLowerCase().includes(q)));
@@ -488,7 +546,7 @@ const histRows = () => {
   const rows = histList().slice(0, S.lim).map(r => {
     const g = dayLabel(r.tSol), h = g === last ? '' : `<tr class="dgp"><td colspan="8">${g}</td></tr>`;
     last = g;
-    return h + `<tr>${cell('Solicitação', fmt(r.tSol))}${cell('Chave', esc(r.keyName))}<td data-label="Funcionário"><span class="ph">${av(r.userName, fotoDe(r.userId), 'sm')}${esc(r.userName)}</span></td><td data-label="Status">${badge(r.status)}</td>
+    return h + `<tr>${cell('Solicitação', fmt(r.tSol))}${cell('Chave', esc(r.keyName))}<td data-label="Funcionário"><span class="ph">${av(r.userName, fotoDe(r.userId), 'sm')}${esc(r.userName)}</span></td><td data-label="Status">${badge(r.expirada ? 'expirada' : r.status)}</td>
     ${cell('Retirada', r.tRet && fmt(r.tRet))}${cell('Devolução', r.tDev && fmt(r.tDev))}${cell('Entregue por', esc(r.guardaRet))}${cell('Recebida por', esc(r.guardaDev))}</tr>`;
   }).join('');
   return rows || `<tr class="dgp"><td colspan="8">Nenhum registro encontrado.</td></tr>`;
@@ -505,19 +563,64 @@ const vHist = () => { const n = histList().length; return `<h2>Histórico <span 
   <div class="chips">${FS.map(([k, v]) => `<button class="chip ${S.fs === k ? 'on' : ''}" data-a="fs" data-id="${k}">${v}</button>`).join('')}</div>
   <div class="tw"><table class="rt" id="tbl"><thead><tr><th>Solicitação</th><th>Chave</th><th>Funcionário</th><th>Status</th><th>Retirada</th><th>Devolução</th><th>Entregue por</th><th>Recebida por</th></tr></thead>
   <tbody>${histRows()}</tbody></table></div>
-  <button id="hmore" class="sec" data-a="more" style="width:100%;margin-top:12px;${n > S.lim ? '' : 'display:none'}">Carregar mais</button>`; };
+  <button id="hmore" class="sec" data-a="more" style="width:100%;margin-top:12px;${n > S.lim ? '' : 'display:none'}">Ver registros mais antigos</button>`; };
 
-const vKeys = () => `<h2>Cadastrar chave</h2>
-  <form id="fKey" class="row frm"><input name="nome" placeholder="Nome (ex.: Sala 101)" required><input name="local" placeholder="Local (ex.: Bloco A)" required><button>Adicionar</button></form>
+const WD = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const dur = ms => { const m = Math.round(ms / 60000); return m < 60 ? m + ' min' : Math.floor(m / 60) + 'h' + String(m % 60).padStart(2, '0'); };
+const topN = (list, f, n = 5) => { const m = {}; list.forEach(r => { const k = f(r); if (k) m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, n); };
+const hbar = rows => { const mx = Math.max(1, ...rows.map(r => r[1])); return rows.length ? rows.map(([l, v]) => `<div class="hb2"><span class="hl" title="${esc(l)}">${esc(l)}</span><span class="ht"><i style="width:${v / mx * 100}%"></i></span><b>${v}</b></div>`).join('') : '<small>Sem dados no período.</small>'; };
+const colc = (vals, labels) => { const mx = Math.max(1, ...vals); return `<div class="cc">${vals.map((v, i) => `<div class="cb" title="${labels[i]}: ${v}"><i style="height:${v / mx * 100}%"></i></div>`).join('')}</div><div class="cx"><span>${labels[0]}</span><span>${labels[labels.length - 1]}</span></div>`; };
+const kpi = (v, l, c = '') => `<div class="kpi ${c}"><b>${v}</b><small>${l}</small></div>`;
+const vDash = () => {
+  const all = S.data.all || S.data.reqs, keys = S.data.keys, staff = S.user.role !== 'funcionario';
+  const from = since(S.dp);
+  const rs = all.filter(r => r.tSol >= from), n = rs.length;
+  const cnt = s => rs.filter(r => r.status === s).length;
+  const exp = rs.filter(r => r.expirada).length, canc = cnt('cancelada') - exp;
+  const ret = rs.filter(r => r.tRet), dev = rs.filter(r => r.tRet && r.tDev);
+  const avgUse = dev.length ? dev.reduce((a, r) => a + r.tDev - r.tRet, 0) / dev.length : 0;
+  const avgWait = ret.length ? ret.reduce((a, r) => a + r.tRet - r.tSol, 0) / ret.length : 0;
+  const nd = S.dp === 'all' ? 30 : +S.dp;
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  const b0 = t0.getTime() - (nd - 1) * DAY;
+  const dv = Array(nd).fill(0), dl = dv.map((_, i) => new Date(b0 + i * DAY).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}));
+  const hv = Array(24).fill(0), wv = Array(7).fill(0);
+  rs.forEach(r => { const i = Math.floor((r.tSol - b0) / DAY); if (i >= 0 && i < nd) dv[i]++; const d = new Date(r.tSol); hv[d.getHours()]++; wv[d.getDay()]++; });
+  const kd = keys.filter(k => k.status === 'disponivel').length, kr = keys.filter(k => k.status === 'reservada').length, ku = keys.length - kd - kr;
+  const pc = x => keys.length ? x / keys.length * 100 : 0;
+  const loc = {}; keys.forEach(k => loc[k.id] = k.local);
+  const pessoas = new Set(rs.map(r => r.userId)).size;
+  return `<h2>Estatísticas de uso</h2>
+  <div class="row frm"><select data-a="dper" style="flex:1 1 180px;width:auto">${PER.map(([k, v]) => `<option value="${k}" ${S.dp === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+  <div class="cardx" style="margin-top:12px"><h3>Chaves agora · ocupação de ${Math.round(pc(kr + ku))}%</h3>
+    <div class="stk"><i style="width:${pc(kd)}%;background:#16a34a"></i><i style="width:${pc(kr)}%;background:#f59e0b"></i><i style="width:${pc(ku)}%;background:var(--r)"></i></div>
+    <small>🟢 Disponíveis: <b>${kd}</b> &nbsp; 🟡 Reservadas: <b>${kr}</b> &nbsp; 🔴 Em uso: <b>${ku}</b> &nbsp; Total: <b>${keys.length}</b></small></div>
+  <div class="kpis">
+    ${kpi(n, 'Solicitações')}${kpi(ret.length, 'Entregues')}${kpi(cnt('devolvida'), 'Devolvidas')}${kpi(cnt('solicitada') + cnt('retirada') + cnt('devolucao'), 'Em andamento')}
+    ${kpi(canc, 'Canceladas')}${kpi(exp, 'Expiradas (3 min)', 'r')}${kpi((n ? Math.round(exp / n * 100) : 0) + '%', 'Taxa de expiração', 'r')}
+    ${kpi(dev.length ? dur(avgUse) : '—', 'Tempo médio de uso')}${kpi(ret.length ? dur(avgWait) : '—', 'Espera média até a entrega')}
+    ${kpi(pessoas, 'Pessoas que usaram')}${kpi(S.data.users.filter(u => u.aprovado !== false).length, 'Usuários cadastrados')}</div>
+  <div class="dg2">
+    ${nd > 1 ? `<div class="cardx"><h3>Solicitações por dia (${nd} dias)</h3>${colc(dv, dl)}</div>` : ''}
+    <div class="cardx"><h3>Solicitações por horário</h3>${colc(hv, hv.map((_, i) => String(i).padStart(2, '0') + 'h'))}</div>
+    <div class="cardx"><h3>Por dia da semana</h3>${hbar(WD.map((d, i) => [d, wv[i]]))}</div>
+    <div class="cardx"><h3>Chaves mais usadas</h3>${hbar(topN(rs, r => r.keyName))}</div>
+    <div class="cardx"><h3>Locais mais movimentados</h3>${hbar(topN(rs, r => loc[r.keyId]))}</div>
+    ${staff ? `<div class="cardx"><h3>Quem mais solicitou</h3>${hbar(topN(rs, r => r.userName))}</div>
+    <div class="cardx"><h3>Atendimentos por guarda</h3>${hbar(topN(rs.flatMap(r => [r.guardaRet, r.guardaDev]).filter(Boolean), x => x))}</div>` : ''}</div>
+  <p class="hint" style="margin-top:14px">Baseado nas solicitações mais recentes carregadas pelo sistema.</p>`;
+};
+const vKeys = () => `<h2>Adicionar nova chave</h2>
+  <form id="fKey" class="row frm"><input name="nome" placeholder="Nome (ex.: Sala 101)" required><input name="local" placeholder="Local (ex.: Bloco A)" required><button>Adicionar chave</button></form>
   <h2>Chaves cadastradas</h2>
-  <div class="tw"><table class="rt"><thead><tr><th>Chave</th><th>Local</th><th>Status</th><th></th></tr></thead><tbody>
-  ${S.data.keys.map(k => `<tr><td data-label="Chave">${esc(k.nome)}</td><td data-label="Local">${esc(k.local)}</td><td data-label="Status">${badge(k.status)}</td><td class="act"><button class="sec" data-a="delKey" data-id="${k.id}">Excluir</button></td></tr>`).join('')}
+  <div class="tw"><table class="rt"><thead><tr><th>Chave</th><th>Local</th><th>Status</th><th>Em posse de</th><th></th></tr></thead><tbody>
+  ${S.data.keys.map(k => `<tr><td data-label="Chave">${esc(k.nome)}</td><td data-label="Local">${esc(k.local)}</td><td data-label="Status">${badge(k.status)}</td><td data-label="Em posse de">${k.status !== 'disponivel' && k.portador ? esc(k.portador) : '—'}</td><td class="act"><button class="dgo" data-a="delKey" data-id="${k.id}">Excluir</button></td></tr>`).join('')}
   </tbody></table></div>`;
 
 const vUsers = () => `<h2>Usuários e perfis</h2><p class="hint">Novos cadastros entram como Funcionário. Quem se cadastrou como Guarda deve ser promovido aqui. Contas suspensas perdem o acesso e veem o motivo informado.</p>
   <div class="tw"><table class="rt"><thead><tr><th>Nome</th><th>Cargo</th><th>E-mail</th><th>Identificação</th><th>Perfil</th><th></th></tr></thead><tbody>
   ${S.data.users.filter(u => u.aprovado !== false).map(u => `<tr><td data-label="Nome"><span class="ph">${av(u.nome, u.foto, 'sm')}<span>${esc(u.nome)}${u.suspenso ? ` <span class="b em_uso">Suspenso</span><br><small>Motivo: ${esc(u.motivoSusp || '—')}</small>` : ''}</span></span></td><td data-label="Cargo">${esc(u.cargo || '—')}</td><td data-label="E-mail">${esc(u.email)}</td><td data-label="Identificação">${esc(idTxt(u))}</td><td data-label="Perfil">
-  <select data-a="role" data-id="${u.uid}">${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td><td class="act">${u.uid === S.user.uid ? '' : `<div class="row" style="flex-wrap:nowrap;width:100%">${u.suspenso ? `<button style="flex:1" data-a="reativar" data-id="${u.uid}">Reativar</button>` : `<button class="sec" style="flex:1" data-a="suspender" data-id="${u.uid}">Suspender</button>`}<button class="sec" style="flex:1" data-a="delUser" data-id="${u.uid}">Excluir</button></div>`}</td></tr>`).join('')}
+  <select data-a="role" data-id="${u.uid}">${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td><td class="act">${u.uid === S.user.uid ? '' : `<div class="row" style="flex-wrap:nowrap;width:100%">${u.suspenso ? `<button style="flex:1" data-a="reativar" data-id="${u.uid}">Reativar acesso</button>` : `<button class="dgo" style="flex:1" data-a="suspender" data-id="${u.uid}">Suspender acesso</button>`}<button class="dgo" style="flex:1" data-a="delUser" data-id="${u.uid}">Excluir conta</button></div>`}</td></tr>`).join('')}
   </tbody></table></div>`;
 
 const fotosHTML = () => {
@@ -525,7 +628,7 @@ const fotosHTML = () => {
   return `<h2>Trocas de foto <span class="n">${f.length}</span></h2>` + (f.length
     ? `<div class="grid">${f.map(u => `<div class="card"><b>${esc(u.nome)}</b><div class="ph">${av(u.nome, u.foto, 'lg')}<span>→</span>${av(u.nome, u.fotoPendente, 'lg')}</div>
       <small>Atual → Nova (passe o mouse ou clique para ampliar)</small>
-      <div class="row"><button style="flex:1;width:auto" data-a="photoOk" data-id="${u.uid}">Autorizar</button><button class="sec" style="flex:1;width:auto" data-a="photoNo" data-id="${u.uid}">Recusar</button></div></div>`).join('')}</div>`
+      <div class="row"><button style="flex:1;width:auto" data-a="photoOk" data-id="${u.uid}">Aprovar foto</button><button class="dgo" style="flex:1;width:auto" data-a="photoNo" data-id="${u.uid}">Recusar foto</button></div></div>`).join('')}</div>`
     : `<div class="empty">Nenhuma troca de foto pendente.</div>`);
 };
 const vSol = () => {
@@ -533,7 +636,7 @@ const vSol = () => {
   return `<h2>Solicitações de cadastro <span class="n">${p.length}</span></h2>` + (p.length
     ? `<div class="grid">${p.map(u => `<div class="card"><div class="ch"><div class="ph">${av(u.nome, u.foto, 'lg')}<b>${esc(u.nome)}</b></div><span class="b solicitada">Pendente</span></div>
       <small>${esc(u.cargo || '—')} · ${esc(idTxt(u))}<br>${esc(u.email)}<br>Cadastro: ${fmt(u.tCad)}</small>
-      <div class="row"><button style="flex:1;width:auto" data-a="approve" data-id="${u.uid}">Autorizar</button><button class="sec" style="flex:1;width:auto" data-a="reject" data-id="${u.uid}">Recusar</button></div></div>`).join('')}</div>`
+      <div class="row"><button style="flex:1;width:auto" data-a="approve" data-id="${u.uid}">Aprovar cadastro</button><button class="dgo" style="flex:1;width:auto" data-a="reject" data-id="${u.uid}">Recusar cadastro</button></div></div>`).join('')}</div>`
     : `<div class="empty">Nenhuma solicitação pendente.</div>`) + fotosHTML();
 };
 
@@ -548,7 +651,8 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth.uid == id && request.resource.data.role == 'funcionario' && request.resource.data.aprovado == false && request.resource.data.foto is string && request.resource.data.foto.size() > 100 && request.resource.data.foto.size() < 100000;
       allow update: if request.auth != null && (role() == 'admin' || (request.auth.uid == id
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['foto','fotoPendente','email'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['foto','fotoPendente','email','telefone','setor','nascimento','cidade','bio','siape','idTipo'])
+        && request.resource.data.get('bio', '').size() <= 300
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['email']) || request.resource.data.email == request.auth.token.email)
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['foto']) || !(resource.data.get('foto', '') is string && resource.data.get('foto', '').size() > 100))
         && request.resource.data.foto is string && request.resource.data.foto.size() < 100000
@@ -558,23 +662,23 @@ service cloud.firestore {
     match /keys/{id} {
       allow read: if request.auth != null;
       allow create, delete: if request.auth != null && role() == 'admin';
-      allow update: if request.auth != null && active() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow update: if request.auth != null && active() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','portador','portadorId','desde']);
     }
     match /requests/{id} {
-      allow read: if staff() || (request.auth != null && resource.data.userId == request.auth.uid);
+      allow read: if request.auth != null && approved();
       allow create: if request.auth != null && approved() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'solicitada';
       allow update: if staff() || (request.auth != null && resource.data.userId == request.auth.uid && active() && request.resource.data.status in ['devolucao','cancelada']);
     }
   }
 }`;
-const vGuia = () => `<h2>Guia de implantação</h2><ol>
+const vGuia = () => `<h2>Ajuda e implantação</h2><ol>
   <li><b>Firebase Console</b> → criar projeto → <i>Authentication</i> → ativar <b>E-mail/senha</b> → <i>Firestore Database</i> → criar em modo produção.</li>
   <li><i>Configurações do projeto</i> → <i>Seus apps</i> → app Web → copiar a config para <code>firebaseConfig</code> no início do script.</li>
   <li>Firestore → <i>Regras</i> → colar as regras abaixo e publicar.</li>
   <li><b>Primeiro admin:</b> cadastre-se no app e, no Firestore, edite <code>users/{uid}.role</code> para <code>admin</code> e <code>aprovado</code> para <code>true</code>. Depois promova guardas na aba Usuários.</li>
   <li><b>GitHub:</b> crie um repositório, envie o <code>index.html</code> → <i>Settings → Pages</i> → branch <code>main</code> / root.</li>
   <li>Firebase → Authentication → <i>Configurações → Domínios autorizados</i> → adicionar <code>seu-usuario.github.io</code>.</li>
-  <li>Cadastre as chaves na aba <i>Gerenciar chaves</i>.</li></ol>
+  <li>Cadastre as chaves na aba <i>Cadastro de chaves</i>.</li></ol>
   <h2>Regras do Firestore</h2><pre>${esc(RULES)}</pre>
   <p class="hint">Fluxo: Funcionário solicita → Guarda entrega → Funcionário devolve → Guarda confirma recebimento. Para produção rigorosa, mova as transições para Cloud Functions.</p>`;
 
@@ -582,15 +686,15 @@ const loginHTML = () => `<div class="lw"><div class="lcard"><aside class="brand"
   ${S.mode === 'login'
     ? `<form id="fLogin"><div class="fld"><label>E-mail</label><input name="email" type="email" placeholder="seu@email.com" autocomplete="email" required></div>
        <div class="fld"><label>Senha</label><input name="senha" type="password" placeholder="Sua senha" autocomplete="current-password" required></div><button>Entrar</button></form>
-       ${B.demo ? '' : `<button class="link" data-a="mode" data-id="reg">Primeiro acesso? Cadastre-se</button>`}`
+       ${B.demo ? '' : `<button class="link" data-a="mode" data-id="reg">Primeiro acesso? Criar minha conta</button>`}`
     : `<form id="fReg"><div class="fld"><label>Foto (obrigatória)</label><div class="ph"><span id="pv">${av('?', null, 'lg')}</span><input name="foto" id="foto" type="file" accept="image/*" required></div></div>
        <div class="fld"><label>Nome completo</label><input name="nome" placeholder="Nome completo" autocomplete="name" required></div>
        <div class="fld"><label>Cargo</label><select name="cargo" required><option value="">Selecione o cargo</option>${CARGOS.map(c => `<option value="${c}">${c}</option>`).join('')}</select></div>
        <div class="fld"><label>Identificação (opcional)</label><div class="row"><select name="idTipo" style="flex:1 1 130px;width:auto"><option value="SIAPE">SIAPE</option><option value="Matrícula">Matrícula</option><option value="CPF">CPF</option></select><input name="siape" placeholder="Número" inputmode="numeric" style="flex:2 1 180px;width:auto"></div></div>
        <div class="fld"><label>E-mail</label><input name="email" type="email" placeholder="seu@email.com" autocomplete="email" required></div>
        <div class="fld"><label>Senha</label><input name="senha" type="password" minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required></div>
-       <div class="fld"><label>Confirmar senha</label><input name="senha2" type="password" minlength="6" placeholder="Repita a senha" autocomplete="new-password" required></div><button>Cadastrar</button></form>
-       <button class="link" data-a="mode" data-id="login">Já tenho conta</button>`}
+       <div class="fld"><label>Confirmar senha</label><input name="senha2" type="password" minlength="6" placeholder="Repita a senha" autocomplete="new-password" required></div><button>Enviar cadastro</button></form>
+       <button class="link" data-a="mode" data-id="login">Voltar para o login</button>`}
   ${B.demo ? `<hr style="width:100%;border:0;border-top:1px solid #e2e8f0"><small>Modo demonstração — acesso rápido:</small>
     <button class="sec" data-a="demo" data-id="funcionario@ifma.edu.br">Entrar como Funcionário</button>
     <button class="sec" data-a="demo" data-id="guarda@ifma.edu.br">Entrar como Guarda</button>
@@ -603,7 +707,7 @@ function render() {
   if (u.aprovado === false) {
     $('#app').innerHTML = `<div class="lw"><div class="lcard" style="max-width:480px;grid-template-columns:1fr"><div class="login" style="text-align:center"><h3>Aguardando autorização</h3>
       <p class="hint">Olá, ${esc(u.nome)}. Seu cadastro foi enviado e precisa ser autorizado pelo administrador antes do primeiro acesso.</p>
-      <button data-a="recheck">Verificar autorização</button><button class="sec" data-a="logout">Sair</button></div></div></div>`;
+      <button data-a="recheck">Verificar se já fui autorizado</button><button class="sec" data-a="logout">Sair</button></div></div></div>`;
     return;
   }
   if (u.suspenso) {
@@ -623,12 +727,12 @@ function render() {
   }
   const tabs = TABS[u.role] || TABS.funcionario;
   if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
-  const V = {minhas:vMinhas, unidade:vUnidade, fila:vFila, sol:vSol, hist:vHist, keys:vKeys, users:vUsers, guia:vGuia};
+  const V = {minhas:vMinhas, unidade:vUnidade, fila:vFila, sol:vSol, hist:vHist, keys:vKeys, users:vUsers, guia:vGuia, dash:vDash};
   const npend = S.data.users.filter(x => x.aprovado === false || (x.fotoPendente && x.aprovado !== false)).length;
   const papel = u.role === 'funcionario' && u.cargo ? u.cargo : ROLE[u.role];
   $('#app').innerHTML = `${B.demo ? '<div class="demo">Modo demonstração: dados em memória. Configure o Firebase para uso real.</div>' : ''}
     <header><div class="hb"><span class="hlogo"><img src="ifma.png" alt="IFMA" onerror="this.parentNode.style.display='none'"></span><div><h1>SAG-ZDC</h1><small>Sistema de Autorização e Guarda de Chaves V1.0<br><a href="https://zedoca.ifma.edu.br/" target="_blank" rel="noopener">IFMA Campus Zé Doca</a></small></div></div>
-    <div class="usr">${av(u.nome, u.foto)}<div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="conta"><span class="lf">Minha conta</span><span class="ls">Conta</span></button><button class="out" data-a="logout">Sair</button></div></header>
+    <div class="usr">${av(u.nome, u.foto)}<div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="conta"><span class="lf">Meu perfil</span><span class="ls">Perfil</span></button><button class="out" data-a="logout">Sair</button></div></header>
     <nav>${tabs.map(t => `<button class="${S.tab === t[0] ? 'on' : ''}" data-a="tab" data-id="${t[0]}"><span class="ic">${IC[t[0]]}</span><span class="lf">${t[1]}</span><span class="ls">${SH[t[0]]}</span>${t[0] === 'sol' && npend ? ` <span class="n">${npend}</span>` : ''}</button>`).join('')}</nav>
     <main id="main">${V[S.tab]()}</main>`;
 }
@@ -654,7 +758,7 @@ function openSusp(u) {
   m.innerHTML = `<form id="fSusp" class="dlg" autocomplete="off"><h3>Suspender conta</h3>
     <p>A conta de <b>${esc(u.nome)}</b> perderá o acesso ao sistema e verá o motivo informado. Você pode reativá-la depois.</p>
     <div class="fld"><label>Motivo da suspensão</label><textarea name="motivo" maxlength="300" placeholder="Descreva o motivo" required></textarea></div>
-    <div class="row"><button type="button" class="sec" data-a="closeModal">Cancelar</button><button class="dg">Suspender conta</button></div></form>`;
+    <div class="row"><button type="button" class="sec" data-a="closeModal">Cancelar</button><button class="dg">Confirmar suspensão</button></div></form>`;
   m.classList.add('on');
   m.querySelector('textarea').focus();
 }
@@ -678,26 +782,61 @@ document.addEventListener('mouseover', e => {
   z.classList.add('on');
 });
 addEventListener('scroll', hideZoom, true);
-function openConta() {
+function perfilInfo() {
+  const u = S.user, mine = (S.data.all || S.data.reqs).filter(r => r.userId === u.uid);
+  const hold = S.data.keys.filter(k => k.portadorId === u.uid && k.status !== 'disponivel').length;
+  const row = (l, v) => v ? `<div class="pi"><small>${l}</small><span>${esc(v)}</span></div>` : '';
+  const nasc = u.nascimento ? new Date(u.nascimento + 'T12:00:00').toLocaleDateString('pt-BR') : '';
+  const id = idTxt(u);
+  return `<div class="pcard"><div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">${av(u.nome, u.foto, 'lg')}<b style="font-size:18px">${esc(u.nome)}</b><span class="b disponivel">${esc(ROLE[u.role])}${u.cargo ? ' · ' + esc(u.cargo) : ''}</span>${u.bio ? `<p class="hint" style="margin:4px 0 0">${esc(u.bio)}</p>` : ''}</div>
+    <div class="pg">${row('E-mail', u.email)}${row('Identificação', id !== '—' ? id : '')}${row('Telefone', u.telefone)}${row('Setor / Lotação', u.setor)}${row('Nascimento', nasc)}${row('Cidade', u.cidade)}${row('Cadastro em', u.tCad ? fmt(u.tCad) : '')}</div>
+    <div class="pst"><div><b>${mine.length}</b><small>Solicitações</small></div><div><b>${mine.filter(r => r.status === 'devolvida').length}</b><small>Devolvidas</small></div><div><b>${hold}</b><small>Em seu poder</small></div></div></div>`;
+}
+function openConta(v = 'menu') {
   S.del = null;
-  const m = $('#modal');
-  m.innerHTML = `<div class="dlg" style="max-height:92vh;overflow:auto"><h3>Minha conta</h3>
-    <div class="fld" style="gap:10px"><b>Foto de perfil</b>
-      <div class="ph">${av(S.user.nome, S.user.foto, 'lg')}${S.user.fotoPendente ? av('', S.user.fotoPendente, 'lg') : ''}</div>
-      <small>${S.user.fotoPendente ? 'À direita: nova foto aguardando autorização do administrador.' : (S.user.role === 'admin' ? 'Como administrador, a troca é imediata.' : 'A troca precisa ser autorizada pelo administrador.')}</small>
-      <input id="fotoReq" type="file" accept="image/*"></div>
-    <hr style="width:100%;border:0;border-top:1px solid #e2e8f0">
-    <form id="fMail" class="fld" style="gap:10px" autocomplete="off"><b>Alterar e-mail</b><small>Atual: ${esc(S.user.email)}</small>
-      <input name="novo" type="email" placeholder="Novo e-mail" required>
-      <input name="senha" type="password" placeholder="Senha atual" autocomplete="current-password" required>
-      <button>Alterar e-mail</button></form>
-    <hr style="width:100%;border:0;border-top:1px solid #e2e8f0">
-    <form id="fPass" class="fld" style="gap:10px" autocomplete="off"><b>Alterar senha</b>
-      <input name="senha" type="password" placeholder="Senha atual" autocomplete="current-password" required>
-      <input name="nova" type="password" minlength="6" placeholder="Nova senha (mínimo 6 caracteres)" autocomplete="new-password" required>
-      <input name="nova2" type="password" minlength="6" placeholder="Repita a nova senha" autocomplete="new-password" required>
-      <button>Alterar senha</button></form>
-    <button type="button" class="sec" data-a="closeModal">Fechar</button></div>`;
+  const u = S.user, m = $('#modal');
+  const back = `<button type="button" class="sec" data-a="contaView" data-id="menu">Voltar</button>`;
+  const opt = (k, t, d) => `<button type="button" class="opt" data-a="contaView" data-id="${k}"><span class="ot"><b>${t}</b><small>${d}</small></span><span class="oa">›</span></button>`;
+  const fotoSt = u.fotoPendente ? 'Nova foto aguardando autorização' : (u.role === 'admin' ? 'Troca imediata' : 'Precisa de autorização do administrador');
+  const V = {
+    menu: `<h3>Meu perfil</h3>${perfilInfo()}
+      <b>O que você deseja alterar?</b>
+      <div class="opts">
+        ${opt('info', 'Informações pessoais', 'Telefone, setor, cidade, identificação e mais')}
+        ${opt('foto', 'Trocar foto', fotoSt)}
+        ${opt('mail', 'Alterar e-mail', esc(u.email))}
+        ${opt('pass', 'Alterar senha', 'Defina uma nova senha de acesso')}
+      </div>
+      <button type="button" class="sec" data-a="closeModal">Fechar</button>`,
+    info: `<h3>Informações pessoais</h3>
+      <p>Todos os campos são opcionais. Preencha apenas o que desejar.</p>
+      <form id="fPerf" class="fld" style="gap:10px" autocomplete="off">
+        <div class="fld"><label>Identificação</label><div class="row"><select name="idTipo" style="flex:1 1 120px;width:auto">${['SIAPE','Matrícula','CPF'].map(t => `<option ${(u.idTipo || 'SIAPE') === t ? 'selected' : ''}>${t}</option>`).join('')}</select><input name="siape" placeholder="Número" inputmode="numeric" maxlength="20" value="${esc(u.siape && u.siape !== '—' ? u.siape : '')}" style="flex:2 1 160px;width:auto"></div></div>
+        <div class="fld"><label>Telefone / WhatsApp</label><input name="telefone" type="tel" maxlength="20" placeholder="(99) 99999-9999" value="${esc(u.telefone)}"></div>
+        <div class="fld"><label>Setor / Lotação</label><input name="setor" maxlength="60" placeholder="Ex.: Coordenação de TI" value="${esc(u.setor)}"></div>
+        <div class="fld"><label>Data de nascimento</label><input name="nascimento" type="date" value="${esc(u.nascimento)}"></div>
+        <div class="fld"><label>Cidade</label><input name="cidade" maxlength="60" placeholder="Ex.: Zé Doca - MA" value="${esc(u.cidade)}"></div>
+        <div class="fld"><label>Sobre você</label><textarea name="bio" maxlength="300" placeholder="Fale um pouco sobre você">${esc(u.bio)}</textarea></div>
+        <button>Salvar informações</button></form>${back}`,
+    foto: `<h3>Trocar foto</h3>
+      <div class="ph" style="justify-content:center">${av(u.nome, u.foto, 'lg')}${u.fotoPendente ? `<span>→</span>${av('', u.fotoPendente, 'lg')}` : ''}</div>
+      <p>${u.fotoPendente ? 'A nova foto (à direita) aguarda a autorização do administrador. Enquanto isso, a foto atual continua em uso.' : (u.role === 'admin' ? 'Como administrador, a nova foto passa a valer imediatamente.' : 'A nova foto só passa a valer depois que o administrador autorizar.')}</p>
+      <div class="fld"><label>Escolher nova foto</label><input id="fotoReq" type="file" accept="image/*"></div>${back}`,
+    mail: `<h3>Alterar e-mail</h3>
+      <p>E-mail atual: <b>${esc(u.email)}</b><br>Enviaremos um link de confirmação ao novo endereço. A troca só vale depois de clicar nele.</p>
+      <form id="fMail" class="fld" style="gap:10px" autocomplete="off">
+        <div class="fld"><label>Novo e-mail</label><input name="novo" type="email" placeholder="novo@email.com" required></div>
+        <div class="fld"><label>Senha atual</label><input name="senha" type="password" placeholder="Digite sua senha atual" autocomplete="current-password" required></div>
+        <button>Enviar link de confirmação</button></form>${back}`,
+    pass: `<h3>Alterar senha</h3>
+      <p>Por segurança, informe sua senha atual e escolha uma nova com no mínimo 6 caracteres.</p>
+      <form id="fPass" class="fld" style="gap:10px" autocomplete="off">
+        <div class="fld"><label>Senha atual</label><input name="senha" type="password" placeholder="Digite sua senha atual" autocomplete="current-password" required></div>
+        <div class="fld"><label>Nova senha</label><input name="nova" type="password" minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required></div>
+        <div class="fld"><label>Confirmar nova senha</label><input name="nova2" type="password" minlength="6" placeholder="Repita a nova senha" autocomplete="new-password" required></div>
+        <button>Salvar nova senha</button></form>${back}`
+  };
+  m.innerHTML = `<div class="dlg" style="max-height:92vh;overflow:auto;max-width:min(520px,100%)">${V[v] || V.menu}</div>`;
   m.classList.add('on');
 }
 
@@ -716,6 +855,7 @@ document.addEventListener('click', async e => {
     if (a === 'demo') { await B.login(id); return; }
     if (a === 'closeModal') { closeModal(); return; }
     if (a === 'conta') { openConta(); return; }
+    if (a === 'contaView') { openConta(id); return; }
     if (a === 'logout') { await B.logout(); return; }
     if (a === 'recheck') {
       const m = await B.me();
@@ -726,7 +866,11 @@ document.addEventListener('click', async e => {
     }
     b.disabled = true;
     if (a === 'request') { await B.request(S.data.keys.find(k => k.id === id), S.user); toast('Chave solicitada! Retire na guarita.'); S.tab = 'minhas'; render(); }
-    else if (T[a]) { await B.act(a, id, S.user); toast('Registrado com sucesso.'); }
+    else if (T[a]) {
+      const rq = S.data.reqs.find(x => x.id === id);
+      if (a === 'deliver' && rq && rq.tSol + TTL <= Date.now()) throw Error('Reserva expirada (mais de 3 minutos).');
+      await B.act(a, id, S.user); toast('Registrado com sucesso.');
+    }
     else if (a === 'approve') { await B.setApproval(id, true); toast('Conta autorizada.'); }
     else if (a === 'reject') { await B.rejectUser(id); toast('Solicitação recusada.'); }
     else if (a === 'photoOk') { await B.approveFoto(id, S.data.users.find(x => x.uid === id).fotoPendente); toast('Nova foto autorizada.'); }
@@ -786,6 +930,13 @@ document.addEventListener('submit', async e => {
       try { await B.suspend(S.susp, motivo, S.user.nome); closeModal(); toast('Conta suspensa.'); }
       catch (err) { btn.disabled = false; throw err; }
     }
+    else if (f.id === 'fPerf') {
+      if (v.nascimento && new Date(v.nascimento) > new Date()) throw Error('Data de nascimento inválida.');
+      const sp = v.siape.trim();
+      const d = {telefone:v.telefone.trim(), setor:v.setor.trim(), nascimento:v.nascimento, cidade:v.cidade.trim(), bio:v.bio.trim(), siape:sp || '—', idTipo:sp ? v.idTipo : ''};
+      await B.saveProfile(S.user.uid, d); Object.assign(S.user, d);
+      toast('Informações salvas.'); render(); openConta();
+    }
     else if (f.id === 'fKey') { await B.addKey({nome:v.nome.trim(), local:v.local.trim()}); f.reset(); }
     else if (f.id === 'fDel') {
       if (S.user.role !== 'admin') throw Error('Apenas administradores podem excluir chaves.');
@@ -806,17 +957,37 @@ document.addEventListener('change', async e => {
     try {
       const f = await readFoto(file);
       if (t.id === 'foto') $('#pv').innerHTML = av('', f, 'lg');
-      else if (t.id === 'fotoReq' && S.user.role !== 'admin') { await B.requestFoto(S.user.uid, f); S.user.fotoPendente = f; toast('Solicitação enviada. Aguarde a autorização do administrador.'); openConta(); }
-      else { await B.setFoto(S.user.uid, f); S.user.foto = f; toast('Foto atualizada.'); render(); if (t.id === 'fotoReq') openConta(); }
+      else if (t.id === 'fotoReq' && S.user.role !== 'admin') { await B.requestFoto(S.user.uid, f); S.user.fotoPendente = f; toast('Solicitação enviada. Aguarde a autorização do administrador.'); openConta('foto'); }
+      else { await B.setFoto(S.user.uid, f); S.user.foto = f; toast('Foto atualizada.'); render(); if (t.id === 'fotoReq') openConta('foto'); }
     } catch (err) { toast(msg(err), 1); t.value = ''; }
     return;
   }
+  if (t.dataset.a === 'dper') { S.dp = t.value; render(); return; }
   if (t.dataset.a === 'per') { S.per = t.value; S.lim = 30; render(); return; }
   if (e.target.dataset.a === 'role') {
     try { await B.setRole(e.target.dataset.id, e.target.value); toast('Perfil atualizado.'); }
     catch (err) { toast(msg(err), 1); }
   }
 });
+
+/* ===================== EXPIRAÇÃO DE RESERVAS ===================== */
+const expBusy = new Set();
+setInterval(() => {
+  const now = Date.now();
+  document.querySelectorAll('.cd').forEach(el => el.textContent = mmss(+el.dataset.exp - now));
+  const u = S.user;
+  if (!u || u.aprovado === false || u.suspenso) return;
+  S.data.reqs
+    .filter(r => r.status === 'solicitada' && r.tSol + TTL <= now && !expBusy.has(r.id) && (u.role !== 'funcionario' || r.userId === u.uid))
+    .forEach(async r => {
+      expBusy.add(r.id);
+      setTimeout(() => expBusy.delete(r.id), 15000);
+      try {
+        await B.act('expire', r.id, u);
+        if (r.userId === u.uid) toast('Sua reserva de "' + r.keyName + '" expirou (mais de 3 minutos) e foi cancelada.', 1);
+      } catch (_) {}
+    });
+}, 1000);
 
 /* ===================== INÍCIO ===================== */
 let unsub = null;
