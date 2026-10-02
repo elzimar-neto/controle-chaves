@@ -52,8 +52,9 @@ button.out:hover{background:rgba(255,255,255,.28)}
 .link:hover{background:none;color:var(--gd)}
 
 label{font-size:14px;font-weight:600;color:#33453c;display:block;margin-bottom:4px}
-input,select{padding:0 14px;min-height:46px;border:1px solid #c6d2cb;border-radius:10px;font:inherit;width:100%;background:#fff;color:var(--tx)}
-input:focus,select:focus{outline:3px solid rgba(0,132,61,.22);border-color:var(--g)}
+input,select,textarea{padding:0 14px;min-height:46px;border:1px solid #c6d2cb;border-radius:10px;font:inherit;width:100%;background:#fff;color:var(--tx)}
+textarea{padding:12px 14px;resize:vertical;min-height:90px}
+input:focus,select:focus,textarea:focus{outline:3px solid rgba(0,132,61,.22);border-color:var(--g)}
 .fld{display:flex;flex-direction:column}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .frm input{flex:1 1 200px;width:auto}
@@ -318,6 +319,8 @@ function makeDemo() {
     async delKey(id) { d.keys = d.keys.filter(x => x.id !== id); emit(); },
     async setRole(id, role) { d.users.find(x => x.uid === id).role = role; emit(); },
     async setApproval(id, ok) { d.users.find(x => x.uid === id).aprovado = ok; emit(); },
+    async suspend(id, motivo, por) { Object.assign(d.users.find(x => x.uid === id), {suspenso:true, motivoSusp:motivo, suspPor:por, tSusp:Date.now()}); emit(); },
+    async reactivate(id) { const u = d.users.find(x => x.uid === id); u.suspenso = false; delete u.motivoSusp; delete u.suspPor; delete u.tSusp; emit(); },
     async rejectUser(id) { d.users = d.users.filter(x => x.uid !== id); emit(); },
     async me() { return S.user; },
     async setFoto(id, f) { d.users.find(x => x.uid === id).foto = f; emit(); },
@@ -411,6 +414,8 @@ async function makeFB() {
     delKey(id) { return F.deleteDoc(ref('keys', id)); },
     setRole(id, role) { return F.updateDoc(ref('users', id), {role}); },
     setApproval(id, ok) { return F.updateDoc(ref('users', id), {aprovado:ok}); },
+    suspend(id, motivo, por) { return F.updateDoc(ref('users', id), {suspenso:true, motivoSusp:motivo, suspPor:por, tSusp:Date.now()}); },
+    reactivate(id) { return F.updateDoc(ref('users', id), {suspenso:false, motivoSusp:F.deleteField(), suspPor:F.deleteField(), tSusp:F.deleteField()}); },
     rejectUser(id) { return F.deleteDoc(ref('users', id)); },
     setFoto(id, foto) { return F.updateDoc(ref('users', id), {foto}); },
     requestFoto(id, fotoPendente) { return F.updateDoc(ref('users', id), {fotoPendente}); },
@@ -509,10 +514,10 @@ const vKeys = () => `<h2>Cadastrar chave</h2>
   ${S.data.keys.map(k => `<tr><td data-label="Chave">${esc(k.nome)}</td><td data-label="Local">${esc(k.local)}</td><td data-label="Status">${badge(k.status)}</td><td class="act"><button class="sec" data-a="delKey" data-id="${k.id}">Excluir</button></td></tr>`).join('')}
   </tbody></table></div>`;
 
-const vUsers = () => `<h2>Usuários e perfis</h2><p class="hint">Novos cadastros entram como Funcionário. Quem se cadastrou como Guarda deve ser promovido aqui.</p>
+const vUsers = () => `<h2>Usuários e perfis</h2><p class="hint">Novos cadastros entram como Funcionário. Quem se cadastrou como Guarda deve ser promovido aqui. Contas suspensas perdem o acesso e veem o motivo informado.</p>
   <div class="tw"><table class="rt"><thead><tr><th>Nome</th><th>Cargo</th><th>E-mail</th><th>Identificação</th><th>Perfil</th><th></th></tr></thead><tbody>
-  ${S.data.users.filter(u => u.aprovado !== false).map(u => `<tr><td data-label="Nome"><span class="ph">${av(u.nome, u.foto, 'sm')}${esc(u.nome)}</span></td><td data-label="Cargo">${esc(u.cargo || '—')}</td><td data-label="E-mail">${esc(u.email)}</td><td data-label="Identificação">${esc(idTxt(u))}</td><td data-label="Perfil">
-  <select data-a="role" data-id="${u.uid}">${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td><td class="act">${u.uid === S.user.uid ? '' : `<button class="sec" data-a="delUser" data-id="${u.uid}">Excluir</button>`}</td></tr>`).join('')}
+  ${S.data.users.filter(u => u.aprovado !== false).map(u => `<tr><td data-label="Nome"><span class="ph">${av(u.nome, u.foto, 'sm')}<span>${esc(u.nome)}${u.suspenso ? ` <span class="b em_uso">Suspenso</span><br><small>Motivo: ${esc(u.motivoSusp || '—')}</small>` : ''}</span></span></td><td data-label="Cargo">${esc(u.cargo || '—')}</td><td data-label="E-mail">${esc(u.email)}</td><td data-label="Identificação">${esc(idTxt(u))}</td><td data-label="Perfil">
+  <select data-a="role" data-id="${u.uid}">${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td><td class="act">${u.uid === S.user.uid ? '' : `<div class="row" style="flex-wrap:nowrap;width:100%">${u.suspenso ? `<button style="flex:1" data-a="reativar" data-id="${u.uid}">Reativar</button>` : `<button class="sec" style="flex:1" data-a="suspender" data-id="${u.uid}">Suspender</button>`}<button class="sec" style="flex:1" data-a="delUser" data-id="${u.uid}">Excluir</button></div>`}</td></tr>`).join('')}
   </tbody></table></div>`;
 
 const fotosHTML = () => {
@@ -536,8 +541,9 @@ const RULES = `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function role() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role; }
-    function staff() { return request.auth != null && role() in ['guarda','admin']; }
-    function approved() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('aprovado', true) != false; }
+    function active() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('suspenso', false) != true; }
+    function staff() { return request.auth != null && role() in ['guarda','admin'] && active(); }
+    function approved() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('aprovado', true) != false && active(); }
     match /users/{id} {
       allow read: if request.auth != null;
       allow create: if request.auth.uid == id && request.resource.data.role == 'funcionario' && request.resource.data.aprovado == false && request.resource.data.foto is string && request.resource.data.foto.size() > 100 && request.resource.data.foto.size() < 100000;
@@ -552,12 +558,12 @@ service cloud.firestore {
     match /keys/{id} {
       allow read: if request.auth != null;
       allow create, delete: if request.auth != null && role() == 'admin';
-      allow update: if request.auth != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow update: if request.auth != null && active() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
     }
     match /requests/{id} {
       allow read: if staff() || (request.auth != null && resource.data.userId == request.auth.uid);
       allow create: if request.auth != null && approved() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'solicitada';
-      allow update: if staff() || (request.auth != null && resource.data.userId == request.auth.uid && request.resource.data.status in ['devolucao','cancelada']);
+      allow update: if staff() || (request.auth != null && resource.data.userId == request.auth.uid && active() && request.resource.data.status in ['devolucao','cancelada']);
     }
   }
 }`;
@@ -600,6 +606,14 @@ function render() {
       <button data-a="recheck">Verificar autorização</button><button class="sec" data-a="logout">Sair</button></div></div></div>`;
     return;
   }
+  if (u.suspenso) {
+    $('#app').innerHTML = `<div class="lw"><div class="lcard" style="max-width:480px;grid-template-columns:1fr"><div class="login" style="text-align:center"><h3>Conta suspensa</h3>
+      <p class="hint">Olá, ${esc(u.nome)}. Seu acesso ao sistema foi suspenso pelo administrador.</p>
+      <div class="note" style="text-align:left;margin:0"><b>Motivo:</b><br>${esc(u.motivoSusp || 'Não informado.')}<br><small>Suspensa em ${fmt(u.tSusp)}</small></div>
+      <p class="hint">Procure a administração do sistema para regularizar sua situação.</p>
+      <button data-a="recheck">Verificar situação</button><button class="sec" data-a="logout">Sair</button></div></div></div>`;
+    return;
+  }
   if (!u.foto && !B.demo) {
     $('#app').innerHTML = `<div class="lw"><div class="lcard" style="max-width:480px;grid-template-columns:1fr"><div class="login" style="text-align:center"><h3>Foto obrigatória</h3>
       <p class="hint">Olá, ${esc(u.nome)}. Para continuar, envie uma foto do seu rosto.</p>
@@ -633,6 +647,16 @@ function openDel(k, user) {
     <div class="row"><button type="button" class="sec" data-a="closeModal">Cancelar</button><button class="dg">Excluir definitivamente</button></div></form>`;
   m.classList.add('on');
   m.querySelector('input').focus();
+}
+function openSusp(u) {
+  S.del = null; S.susp = u.id;
+  const m = $('#modal');
+  m.innerHTML = `<form id="fSusp" class="dlg" autocomplete="off"><h3>Suspender conta</h3>
+    <p>A conta de <b>${esc(u.nome)}</b> perderá o acesso ao sistema e verá o motivo informado. Você pode reativá-la depois.</p>
+    <div class="fld"><label>Motivo da suspensão</label><textarea name="motivo" maxlength="300" placeholder="Descreva o motivo" required></textarea></div>
+    <div class="row"><button type="button" class="sec" data-a="closeModal">Cancelar</button><button class="dg">Suspender conta</button></div></form>`;
+  m.classList.add('on');
+  m.querySelector('textarea').focus();
 }
 function closeModal() { S.del = null; const m = $('#modal'); m.classList.remove('on'); m.innerHTML = ''; }
 function openFoto(im) {
@@ -695,7 +719,9 @@ document.addEventListener('click', async e => {
     if (a === 'logout') { await B.logout(); return; }
     if (a === 'recheck') {
       const m = await B.me();
-      if (m.aprovado === false) toast('Ainda aguardando autorização.', 1); else start(m);
+      if (m.aprovado === false) toast('Ainda aguardando autorização.', 1);
+      else if (m.suspenso) { start(m); toast('A conta continua suspensa.', 1); }
+      else start(m);
       return;
     }
     b.disabled = true;
@@ -715,6 +741,15 @@ document.addEventListener('click', async e => {
       if (id === S.user.uid) throw Error('Você não pode excluir a própria conta.');
       if (S.data.reqs.some(r => r.userId === id && ['solicitada','retirada','devolucao'].includes(r.status))) throw Error('Usuário possui chave em andamento.');
       b.disabled = false; openDel({id, nome:u.nome}, true);
+    }
+    else if (a === 'suspender') {
+      const u = S.data.users.find(x => x.uid === id);
+      if (id === S.user.uid) throw Error('Você não pode suspender a própria conta.');
+      if (S.data.reqs.some(r => r.userId === id && ABERTO.includes(r.status))) throw Error('Usuário possui chave em andamento.');
+      b.disabled = false; openSusp({id, nome:u.nome});
+    }
+    else if (a === 'reativar') {
+      await B.reactivate(id); toast('Conta reativada.');
     }
   } catch (err) { toast(msg(err), 1); b.disabled = false; }
 });
@@ -743,6 +778,13 @@ document.addEventListener('submit', async e => {
       await B.changePass(v.senha, v.nova);
       closeModal();
       toast('Senha alterada com sucesso.');
+    }
+    else if (f.id === 'fSusp') {
+      const motivo = v.motivo.trim();
+      if (motivo.length < 5) throw Error('Informe o motivo da suspensão.');
+      const btn = f.querySelector('.dg'); btn.disabled = true;
+      try { await B.suspend(S.susp, motivo, S.user.nome); closeModal(); toast('Conta suspensa.'); }
+      catch (err) { btn.disabled = false; throw err; }
     }
     else if (f.id === 'fKey') { await B.addKey({nome:v.nome.trim(), local:v.local.trim()}); f.reset(); }
     else if (f.id === 'fDel') {
@@ -781,7 +823,7 @@ let unsub = null;
 function start(u) {
   if (unsub) { unsub(); unsub = null; }
   S.user = u; S.tab = null;
-  if (u && u.aprovado !== false) unsub = B.listen(u, d => { d.keys.sort((a, b) => a.nome.localeCompare(b.nome)); if (d.me) S.user = d.me; S.data = d; refresh(); });
+  if (u && u.aprovado !== false && !u.suspenso) unsub = B.listen(u, d => { d.keys.sort((a, b) => a.nome.localeCompare(b.nome)); if (d.me) S.user = d.me; S.data = d; refresh(); });
   else S.data = {keys:[], reqs:[], users:[]};
   render();
 }
