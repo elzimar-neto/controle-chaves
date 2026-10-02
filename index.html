@@ -317,6 +317,9 @@ const T = {
   cancel:   {from:'solicitada', to:'cancelada', ts:'tCanc',                    key:'disponivel'}
 };
 T.expire = {from:'solicitada', to:'cancelada', ts:'tCanc', key:'disponivel', extra:{expirada:true}};
+const LOGA = {deliver:'entregar_chave', giveBack:'devolver_chave', receive:'receber_chave', cancel:'cancelar_solicitacao', expire:'expirar_reserva'};
+Object.entries(LOGA).forEach(([k, v]) => T[k].log = v);
+const ld = (t, r) => (t.extra ? 'Expirada após 3 min · ' : '') + 'Funcionário: ' + r.userName;
 const TTL = 3 * 60 * 1000;
 const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
 const cd = r => `<span class="cd" data-exp="${r.tSol + TTL}">${mmss(r.tSol + TTL - Date.now())}</span>`;
@@ -342,12 +345,13 @@ function makeDemo() {
     keys: ['Sala 101|Bloco A','Sala 102|Bloco A','Laboratório de Informática|Bloco B','Laboratório de Química|Bloco B',
       'Biblioteca|Bloco C','Auditório|Bloco C','Sala dos Professores|Bloco A','Coordenação|Administrativo']
       .map(s => {const [nome, local] = s.split('|'); return {id:uid(), nome, local, status:'disponivel'};}),
-    reqs: []
+    reqs: [], logs: []
   };
   let fn = () => {};
+  const mk = (u, acao, alvo, detalhe = '') => ({id:uid(), uid:u.uid, autor:u.nome, acao, alvo:alvo || '', detalhe:detalhe || '', t:Date.now()});
   const emit = () => {
     const m = d.users.find(x => x.uid === (S.user || {}).uid);
-    fn({keys:d.keys.map(x => ({...x})), reqs:d.reqs.map(x => ({...x})), users:d.users.map(x => ({...x})), me:m && {...m}});
+    fn({keys:d.keys.map(x => ({...x})), reqs:d.reqs.map(x => ({...x})), users:d.users.map(x => ({...x})), logs:d.logs.map(x => ({...x})), me:m && {...m}});
   };
   return {
     demo: true, authCb: () => {},
@@ -368,15 +372,18 @@ function makeDemo() {
       if (kk.status !== 'disponivel') throw Error('Chave indisponível.');
       Object.assign(kk, {status:'reservada', portador:u.nome, portadorId:u.uid, desde:Date.now()});
       d.reqs.unshift({id:uid(), keyId:kk.id, keyName:kk.nome, userId:u.uid, userName:u.nome, status:'solicitada', tSol:Date.now()});
+      d.logs.unshift(mk(u, 'solicitar_chave', kk.nome, kk.local));
       emit();
     },
     async act(a, id, u) {
       const t = T[a], r = d.reqs.find(x => x.id === id);
       if (r.status !== t.from) throw Error('Status já foi alterado.');
       r.status = t.to; r[t.ts] = Date.now(); if (t.who) r[t.who] = u.nome; Object.assign(r, t.extra);
-      Object.assign(d.keys.find(x => x.id === r.keyId), keyUp(t, r)); emit();
+      Object.assign(d.keys.find(x => x.id === r.keyId), keyUp(t, r));
+      d.logs.unshift(mk(u, t.log, r.keyName, ld(t, r))); emit();
     },
     async addKey(k) { d.keys.push({id:uid(), ...k, status:'disponivel'}); emit(); },
+    async log(u, acao, alvo, det) { d.logs.unshift(mk(u, acao, alvo, det)); emit(); },
     async delKey(id) { d.keys = d.keys.filter(x => x.id !== id); emit(); },
     async setRole(id, role) { d.users.find(x => x.uid === id).role = role; emit(); },
     async setApproval(id, ok) { d.users.find(x => x.uid === id).aprovado = ok; emit(); },
@@ -396,8 +403,10 @@ function makeDemo() {
 async function makeFB() {
   const [{initializeApp}, A, F] = await Promise.all(['app','auth','firestore'].map(m => import(`${CDN}/firebase-${m}.js`)));
   const app = initializeApp(firebaseConfig), auth = A.getAuth(app), db = F.getFirestore(app);
+  try { await A.setPersistence(auth, A.browserSessionPersistence); } catch (_) {}
   const col = n => F.collection(db, n), ref = (n, id) => F.doc(db, n, id);
   let cb = () => {}, reg = false;
+  const lg = (u, acao, alvo, detalhe) => ({uid:u.uid, autor:u.nome, acao, alvo:alvo || '', detalhe:detalhe || '', t:F.serverTimestamp()});
   return {
     demo: false,
     onAuth(f) {
@@ -440,7 +449,7 @@ async function makeFB() {
       await A.verifyBeforeUpdateEmail(auth.currentUser, novo);
     },
     listen(u, fn) {
-      const st = {keys:[], reqs:[], users:[]}, emit = () => fn({...st});
+      const st = {keys:[], reqs:[], users:[], logs:[]}, emit = () => fn({...st});
       const q = u.role === 'funcionario'
         ? F.query(col('requests'), F.where('userId', '==', u.uid))
         : F.query(col('requests'), F.orderBy('tSol', 'desc'), F.limit(300));
@@ -450,6 +459,7 @@ async function makeFB() {
         F.onSnapshot(q, s => { st.reqs = s.docs.map(d => ({id:d.id, ...d.data()})).sort((a, b) => b.tSol - a.tSol); emit(); }, e => toast(msg(e), 1))
       ];
       un.push(F.onSnapshot(col('users'), s => { st.users = s.docs.map(d => ({uid:d.id, ...d.data()})); emit(); }));
+      if (u.role === 'admin') un.push(F.onSnapshot(F.query(col('logs'), F.orderBy('t', 'desc'), F.limit(500)), s => { st.logs = s.docs.map(d => { const x = d.data(); return {id:d.id, ...x, t:x.t ? x.t.toMillis() : Date.now()}; }); emit(); }, e => toast(msg(e), 1)));
       if (u.role === 'funcionario') un.push(F.onSnapshot(F.query(col('requests'), F.orderBy('tSol', 'desc'), F.limit(500)), s => { st.all = s.docs.map(d => d.data()); emit(); }, () => {}));
       return () => un.forEach(f => f());
     },
@@ -460,6 +470,7 @@ async function makeFB() {
         if (s.data().status !== 'disponivel') throw Error('Chave indisponível.');
         t.update(kr, {status:'reservada', portador:u.nome, portadorId:u.uid, desde:Date.now()});
         t.set(rr, {keyId:k.id, keyName:k.nome, userId:u.uid, userName:u.nome, status:'solicitada', tSol:Date.now()});
+        t.set(F.doc(col('logs')), lg(u, 'solicitar_chave', k.nome, k.local));
       });
     },
     async act(a, id, u) {
@@ -472,9 +483,11 @@ async function makeFB() {
         Object.assign(up, t.extra);
         tx.update(rr, up);
         tx.update(ref('keys', r.keyId), keyUp(t, r));
+        tx.set(F.doc(col('logs')), lg(u, t.log, r.keyName, ld(t, r)));
       });
     },
     addKey(k) { return F.addDoc(col('keys'), {...k, status:'disponivel'}); },
+    log(u, acao, alvo, detalhe) { return F.addDoc(col('logs'), lg(u, acao, alvo, detalhe)); },
     delKey(id) { return F.deleteDoc(ref('keys', id)); },
     setRole(id, role) { return F.updateDoc(ref('users', id), {role}); },
     setApproval(id, ok) { return F.updateDoc(ref('users', id), {aprovado:ok}); },
@@ -493,15 +506,15 @@ async function makeFB() {
 const B = firebaseConfig.apiKey === 'SUA_API_KEY' ? makeDemo() : await makeFB();
 
 /* ===================== ESTADO E VIEWS ===================== */
-const S = {user:null, data:{keys:[], reqs:[], users:[]}, tab:null, q:'', mode:'login', fs:'todos', per:'30', lim:30, dp:'30'};
+const S = {user:null, data:{keys:[], reqs:[], users:[], logs:[]}, tab:null, q:'', mode:'login', fs:'todos', per:'30', lim:30, dp:'30', lq:'', lp:'30', la:'todas', ll:50};
 const TABS = {
   funcionario: [['minhas','Minhas chaves'], ['unidade','Pegar chave'], ['hist','Meu histórico'], ['dash','Estatísticas']],
   guarda: [['fila','Entregar e receber'], ['hist','Histórico'], ['dash','Estatísticas']],
-  admin: [['fila','Entregar e receber'], ['sol','Aprovar cadastros'], ['hist','Histórico'], ['dash','Estatísticas'], ['keys','Cadastro de chaves'], ['users','Usuários'], ['guia','Ajuda e implantação']]
+  admin: [['fila','Entregar e receber'], ['sol','Aprovar cadastros'], ['hist','Histórico'], ['dash','Estatísticas'], ['keys','Cadastro de chaves'], ['users','Usuários'], ['audit','Auditoria'], ['guia','Ajuda e implantação']]
 };
 const ROLE = {funcionario:'Funcionário', guarda:'Guarda', admin:'Administrador'};
-const IC = {minhas:'🔑', unidade:'🏫', hist:'🕘', fila:'🛎️', sol:'📥', keys:'⚙️', users:'👥', guia:'📖', dash:'📊'};
-const SH = {minhas:'Minhas', unidade:'Pegar', hist:'Histórico', fila:'Entregas', sol:'Cadastros', keys:'Chaves', users:'Usuários', guia:'Ajuda', dash:'Estatísticas'};
+const IC = {minhas:'🔑', unidade:'🏫', hist:'🕘', fila:'🛎️', sol:'📥', keys:'⚙️', users:'👥', guia:'📖', dash:'📊', audit:'🧾'};
+const SH = {minhas:'Minhas', unidade:'Pegar', hist:'Histórico', fila:'Entregas', sol:'Cadastros', keys:'Chaves', users:'Usuários', guia:'Ajuda', dash:'Estatísticas', audit:'Auditoria'};
 
 const pend = () => (S.user.role === 'funcionario' && S.user.cargo === 'Guarda')
   ? `<div class="note">Seu cadastro como Guarda aguarda liberação do administrador. Enquanto isso, você tem acesso de funcionário.</div>` : '';
@@ -634,6 +647,40 @@ const vUsers = () => `<div class="pnl wide"><h2 class="pt">Usuários e perfis</h
   <select data-a="role" data-id="${u.uid}">${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td><td class="act">${u.uid === S.user.uid ? '' : `<div class="row" style="flex-wrap:nowrap;width:100%">${u.suspenso ? `<button style="flex:1" data-a="reativar" data-id="${u.uid}">Reativar acesso</button>` : `<button class="dgo" style="flex:1" data-a="suspender" data-id="${u.uid}">Suspender acesso</button>`}<button class="dgo" style="flex:1" data-a="delUser" data-id="${u.uid}">Excluir conta</button></div>`}</td></tr>`).join('')}
   </tbody></table></div></div>`;
 
+const ACAO = {
+  solicitar_chave:'Solicitou chave', entregar_chave:'Entregou chave', devolver_chave:'Devolveu chave', receber_chave:'Recebeu chave',
+  cancelar_solicitacao:'Cancelou solicitação', expirar_reserva:'Reserva expirada',
+  aprovar_cadastro:'Aprovou cadastro', recusar_cadastro:'Recusou cadastro', alterar_perfil:'Alterou perfil de acesso',
+  suspender:'Suspendeu conta', reativar:'Reativou conta', excluir_usuario:'Excluiu conta',
+  criar_chave:'Criou chave', excluir_chave:'Excluiu chave', aprovar_foto:'Aprovou foto', recusar_foto:'Recusou foto',
+  login:'Entrou no sistema', logout:'Saiu do sistema', logout_inativo:'Saída por inatividade'
+};
+const ACOR = {suspender:'em_uso', excluir_usuario:'em_uso', excluir_chave:'em_uso', recusar_cadastro:'em_uso', recusar_foto:'em_uso',
+  alterar_perfil:'solicitada', expirar_reserva:'cancelada', cancelar_solicitacao:'cancelada', logout:'cancelada', logout_inativo:'cancelada'};
+const fmtS = t => new Date(t).toLocaleString('pt-BR');
+const nomeU = id => (S.data.users.find(x => x.uid === id) || {}).nome || id;
+const audit = (acao, alvo, det) => B.log(S.user, acao, alvo, det).catch(() => {});
+const logList = () => {
+  const q = S.lq.toLowerCase(), from = since(S.lp);
+  return (S.data.logs || []).filter(l => l.t >= from && (S.la === 'todas' || l.acao === S.la)
+    && (!q || [l.autor, l.alvo, l.detalhe, ACAO[l.acao]].join(' ').toLowerCase().includes(q)));
+};
+const logRows = () => logList().slice(0, S.ll).map(l => `<tr>${cell('Data e hora', fmtS(l.t))}<td data-label="Autor"><span class="ph">${av(l.autor, fotoDe(l.uid), 'sm')}${esc(l.autor)}</span></td><td data-label="Ação"><span class="b ${ACOR[l.acao] || 'disponivel'}">${esc(ACAO[l.acao] || l.acao)}</span></td>${cell('Alvo', esc(l.alvo))}${cell('Detalhe', esc(l.detalhe))}</tr>`).join('')
+  || `<tr class="dgp"><td colspan="5">Nenhum registro encontrado.</td></tr>`;
+function updLogs() {
+  const n = logList().length;
+  $('#ltbl tbody').innerHTML = logRows();
+  $('#lcnt').textContent = n;
+  $('#lmore').style.display = n > S.ll ? '' : 'none';
+}
+const vAudit = () => { const n = logList().length; return `<div class="pnl wide"><h2 class="pt">Auditoria <span class="n" id="lcnt">${n}</span></h2>
+  <p class="hint">Registro permanente de quem fez o quê e quando. Os registros não podem ser editados nem apagados. São exibidos os 500 mais recentes.</p>
+  <div class="row frm"><input id="lq" type="search" placeholder="Buscar autor, alvo ou detalhe" value="${esc(S.lq)}">
+  <select data-a="lper" style="flex:1 1 150px;width:auto">${PER.map(([k, v]) => `<option value="${k}" ${S.lp === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
+  <select data-a="lacao" style="flex:1 1 190px;width:auto"><option value="todas">Todas as ações</option>${Object.entries(ACAO).map(([k, v]) => `<option value="${k}" ${S.la === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+  <div class="tw"><table class="rt" id="ltbl"><thead><tr><th>Data e hora</th><th>Autor</th><th>Ação</th><th>Alvo</th><th>Detalhe</th></tr></thead><tbody>${logRows()}</tbody></table></div>
+  <button id="lmore" class="sec" data-a="lmore" style="width:100%;margin-top:12px;${n > S.ll ? '' : 'display:none'}">Ver registros mais antigos</button></div>`; };
+
 const fotosHTML = () => {
   const f = S.data.users.filter(u => u.fotoPendente && u.aprovado !== false);
   return P('Trocas de foto', f.length, f.length
@@ -679,6 +726,14 @@ service cloud.firestore {
       allow read: if request.auth != null && approved();
       allow create: if request.auth != null && approved() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'solicitada';
       allow update: if staff() || (request.auth != null && resource.data.userId == request.auth.uid && active() && request.resource.data.status in ['devolucao','cancelada']);
+    }
+    match /logs/{id} {
+      allow read: if request.auth != null && role() == 'admin';
+      allow create: if request.auth != null && active()
+        && request.resource.data.keys().hasOnly(['uid','autor','acao','alvo','detalhe','t'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.t == request.time;
+      allow update, delete: if false;
     }
   }
 }`;
@@ -738,7 +793,7 @@ function render() {
   }
   const tabs = TABS[u.role] || TABS.funcionario;
   if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
-  const V = {minhas:vMinhas, unidade:vUnidade, fila:vFila, sol:vSol, hist:vHist, keys:vKeys, users:vUsers, guia:vGuia, dash:vDash};
+  const V = {minhas:vMinhas, unidade:vUnidade, fila:vFila, sol:vSol, hist:vHist, keys:vKeys, users:vUsers, guia:vGuia, dash:vDash, audit:vAudit};
   const npend = S.data.users.filter(x => x.aprovado === false || (x.fotoPendente && x.aprovado !== false)).length;
   const papel = u.role === 'funcionario' && u.cargo ? u.cargo : ROLE[u.role];
   $('#app').innerHTML = `${B.demo ? '<div class="demo">Modo demonstração: dados em memória. Configure o Firebase para uso real.</div>' : ''}
@@ -862,17 +917,18 @@ document.addEventListener('click', async e => {
     if (a === 'tab') { S.tab = id; S.lim = 30; render(); return; }
     if (a === 'fs') { S.fs = id; S.lim = 30; render(); return; }
     if (a === 'more') { S.lim += 30; updHist(); return; }
+    if (a === 'lmore') { S.ll += 50; updLogs(); return; }
     if (a === 'mode') { S.mode = id; render(); return; }
-    if (a === 'demo') { await B.login(id); return; }
+    if (a === 'demo') { pendLogin = true; await B.login(id); return; }
     if (a === 'closeModal') { closeModal(); return; }
     if (a === 'conta') { openConta(); return; }
     if (a === 'contaView') { openConta(id); return; }
-    if (a === 'logout') { await B.logout(); return; }
+    if (a === 'logout') { if (canLog(S.user)) await audit('logout', S.user.nome); await B.logout(); return; }
     if (a === 'recheck') {
       const m = await B.me();
       if (m.aprovado === false) toast('Ainda aguardando autorização.', 1);
       else if (m.suspenso) { start(m); toast('A conta continua suspensa.', 1); }
-      else start(m);
+      else { pendLogin = true; start(m); }
       return;
     }
     b.disabled = true;
@@ -882,10 +938,10 @@ document.addEventListener('click', async e => {
       if (a === 'deliver' && rq && rq.tSol + TTL <= Date.now()) throw Error('Reserva expirada (mais de 3 minutos).');
       await B.act(a, id, S.user); toast('Registrado com sucesso.');
     }
-    else if (a === 'approve') { await B.setApproval(id, true); toast('Conta autorizada.'); }
-    else if (a === 'reject') { await B.rejectUser(id); toast('Solicitação recusada.'); }
-    else if (a === 'photoOk') { await B.approveFoto(id, S.data.users.find(x => x.uid === id).fotoPendente); toast('Nova foto autorizada.'); }
-    else if (a === 'photoNo') { await B.rejectFoto(id); toast('Troca de foto recusada.'); }
+    else if (a === 'approve') { await B.setApproval(id, true); audit('aprovar_cadastro', nomeU(id)); toast('Conta autorizada.'); }
+    else if (a === 'reject') { const n = nomeU(id); await B.rejectUser(id); audit('recusar_cadastro', n); toast('Solicitação recusada.'); }
+    else if (a === 'photoOk') { await B.approveFoto(id, S.data.users.find(x => x.uid === id).fotoPendente); audit('aprovar_foto', nomeU(id)); toast('Nova foto autorizada.'); }
+    else if (a === 'photoNo') { await B.rejectFoto(id); audit('recusar_foto', nomeU(id)); toast('Troca de foto recusada.'); }
     else if (a === 'delKey') {
       const k = S.data.keys.find(k => k.id === id);
       if (k.status !== 'disponivel') throw Error('Chave em uso não pode ser excluída.');
@@ -904,7 +960,7 @@ document.addEventListener('click', async e => {
       b.disabled = false; openSusp({id, nome:u.nome});
     }
     else if (a === 'reativar') {
-      await B.reactivate(id); toast('Conta reativada.');
+      await B.reactivate(id); audit('reativar', nomeU(id)); toast('Conta reativada.');
     }
   } catch (err) { toast(msg(err), 1); b.disabled = false; }
 });
@@ -912,7 +968,7 @@ document.addEventListener('submit', async e => {
   e.preventDefault();
   const f = e.target, v = Object.fromEntries(new FormData(f));
   try {
-    if (f.id === 'fLogin') await B.login(v.email, v.senha);
+    if (f.id === 'fLogin') { pendLogin = true; await B.login(v.email, v.senha); }
     else if (f.id === 'fReg') {
       if (v.senha !== v.senha2) throw Error('As senhas não conferem.');
       if (!v.foto || !v.foto.size) throw Error('A foto é obrigatória.');
@@ -938,7 +994,7 @@ document.addEventListener('submit', async e => {
       const motivo = v.motivo.trim();
       if (motivo.length < 5) throw Error('Informe o motivo da suspensão.');
       const btn = f.querySelector('.dg'); btn.disabled = true;
-      try { await B.suspend(S.susp, motivo, S.user.nome); closeModal(); toast('Conta suspensa.'); }
+      try { const al = nomeU(S.susp); await B.suspend(S.susp, motivo, S.user.nome); audit('suspender', al, motivo); closeModal(); toast('Conta suspensa.'); }
       catch (err) { btn.disabled = false; throw err; }
     }
     else if (f.id === 'fPerf') {
@@ -948,18 +1004,24 @@ document.addEventListener('submit', async e => {
       await B.saveProfile(S.user.uid, d); Object.assign(S.user, d);
       toast('Informações salvas.'); render(); openConta();
     }
-    else if (f.id === 'fKey') { await B.addKey({nome:v.nome.trim(), local:v.local.trim()}); f.reset(); }
+    else if (f.id === 'fKey') { await B.addKey({nome:v.nome.trim(), local:v.local.trim()}); audit('criar_chave', v.nome.trim(), v.local.trim()); f.reset(); }
     else if (f.id === 'fDel') {
       if (S.user.role !== 'admin') throw Error('Apenas administradores podem excluir chaves.');
       const btn = f.querySelector('.dg'); btn.disabled = true;
       const isU = S.delUser;
-      try { await B.confirmPass(v.senha); await (isU ? B.rejectUser(S.del) : B.delKey(S.del)); closeModal(); toast(isU ? 'Conta excluída.' : 'Chave excluída.'); }
+      try {
+        const alvo = isU ? nomeU(S.del) : (S.data.keys.find(k => k.id === S.del) || {}).nome;
+        await B.confirmPass(v.senha); await (isU ? B.rejectUser(S.del) : B.delKey(S.del));
+        audit(isU ? 'excluir_usuario' : 'excluir_chave', alvo);
+        closeModal(); toast(isU ? 'Conta excluída.' : 'Chave excluída.');
+      }
       catch (err) { btn.disabled = false; throw err; }
     }
-  } catch (err) { toast(msg(err), 1); }
+  } catch (err) { pendLogin = false; toast(msg(err), 1); }
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'q') { S.q = e.target.value; S.lim = 30; updHist(); }
+  if (e.target.id === 'lq') { S.lq = e.target.value; S.ll = 50; updLogs(); }
 });
 document.addEventListener('change', async e => {
   const t = e.target;
@@ -974,17 +1036,42 @@ document.addEventListener('change', async e => {
     return;
   }
   if (t.dataset.a === 'dper') { S.dp = t.value; render(); return; }
+  if (t.dataset.a === 'lper') { S.lp = t.value; S.ll = 50; render(); return; }
+  if (t.dataset.a === 'lacao') { S.la = t.value; S.ll = 50; render(); return; }
   if (t.dataset.a === 'per') { S.per = t.value; S.lim = 30; render(); return; }
   if (e.target.dataset.a === 'role') {
-    try { await B.setRole(e.target.dataset.id, e.target.value); toast('Perfil atualizado.'); }
+    try {
+      const id = e.target.dataset.id, uu = S.data.users.find(x => x.uid === id) || {};
+      await B.setRole(id, e.target.value);
+      audit('alterar_perfil', uu.nome, `${ROLE[uu.role]} → ${ROLE[e.target.value]}`);
+      toast('Perfil atualizado.');
+    }
     catch (err) { toast(msg(err), 1); }
   }
 });
 
 /* ===================== EXPIRAÇÃO DE RESERVAS ===================== */
 const expBusy = new Set();
+const IDLE = 5 * 60 * 1000;
+let pendLogin = false, lastAct = Date.now(), idleWarn = false, outBusy = false;
+['mousemove','mousedown','keydown','touchstart','scroll','wheel','click'].forEach(ev =>
+  addEventListener(ev, () => { lastAct = Date.now(); idleWarn = false; }, {passive:true, capture:true}));
+const canLog = u => u && u.aprovado !== false && !u.suspenso;
+async function idleOut() {
+  outBusy = true;
+  try {
+    if (canLog(S.user)) await audit('logout_inativo', S.user.nome, 'Sem interação por 5 minutos');
+    closeModal(); await B.logout();
+    toast('Sessão encerrada por inatividade (5 minutos).', 1);
+  } catch (_) {} finally { outBusy = false; }
+}
 setInterval(() => {
   const now = Date.now();
+  if (S.user && !outBusy) {
+    const idle = now - lastAct;
+    if (idle >= IDLE) idleOut();
+    else if (idle >= IDLE - 30000 && !idleWarn) { idleWarn = true; toast('Sua sessão expira em 30 segundos por inatividade. Mova o mouse ou toque na tela para continuar.', 1); }
+  }
   document.querySelectorAll('.cd').forEach(el => el.textContent = mmss(+el.dataset.exp - now));
   const u = S.user;
   if (!u || u.aprovado === false || u.suspenso) return;
@@ -1005,6 +1092,8 @@ let unsub = null;
 function start(u) {
   if (unsub) { unsub(); unsub = null; }
   S.user = u; S.tab = null;
+  lastAct = Date.now(); idleWarn = false;
+  if (u && pendLogin && canLog(u)) { pendLogin = false; audit('login', u.nome, 'Perfil: ' + ROLE[u.role]); }
   if (u && u.aprovado !== false && !u.suspenso) unsub = B.listen(u, d => { d.keys.sort((a, b) => a.nome.localeCompare(b.nome)); if (d.me) S.user = d.me; S.data = d; refresh(); });
   else S.data = {keys:[], reqs:[], users:[]};
   render();
