@@ -397,9 +397,9 @@ const vKeys = () => `<h2>Cadastrar chave</h2>
   </tbody></table></div>`;
 
 const vUsers = () => `<h2>Usuários e perfis</h2><p class="hint">Novos cadastros entram como Funcionário. Quem se cadastrou como Guarda deve ser promovido aqui.</p>
-  <div class="tw"><table class="rt"><thead><tr><th>Nome</th><th>Cargo</th><th>E-mail</th><th>Identificação</th><th>Perfil</th></tr></thead><tbody>
+  <div class="tw"><table class="rt"><thead><tr><th>Nome</th><th>Cargo</th><th>E-mail</th><th>Identificação</th><th>Perfil</th><th></th></tr></thead><tbody>
   ${S.data.users.filter(u => u.aprovado !== false).map(u => `<tr><td data-label="Nome"><span class="ph">${av(u.nome, u.foto, 'sm')}${esc(u.nome)}</span></td><td data-label="Cargo">${esc(u.cargo || '—')}</td><td data-label="E-mail">${esc(u.email)}</td><td data-label="Identificação">${esc(idTxt(u))}</td><td data-label="Perfil">
-  <select data-a="role" data-id="${u.uid}">${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td></tr>`).join('')}
+  <select data-a="role" data-id="${u.uid}">${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td><td class="act">${u.uid === S.user.uid ? '' : `<button class="sec" data-a="delUser" data-id="${u.uid}">Excluir</button>`}</td></tr>`).join('')}
   </tbody></table></div>`;
 
 const vSol = () => {
@@ -497,11 +497,11 @@ function refresh() {
   render();
 }
 
-function openDel(k) {
-  S.del = k.id;
+function openDel(k, user) {
+  S.del = k.id; S.delUser = !!user;
   const m = $('#modal');
-  m.innerHTML = `<form id="fDel" class="dlg" autocomplete="off"><h3>Excluir chave</h3>
-    <p>Deseja realmente excluir o registro da chave <b>${esc(k.nome)}</b>? Esta ação não pode ser desfeita.</p>
+  m.innerHTML = `<form id="fDel" class="dlg" autocomplete="off"><h3>${user ? 'Excluir conta' : 'Excluir chave'}</h3>
+    <p>${user ? `Deseja realmente excluir a conta de <b>${esc(k.nome)}</b>? O acesso será removido e esta ação não pode ser desfeita.` : `Deseja realmente excluir o registro da chave <b>${esc(k.nome)}</b>? Esta ação não pode ser desfeita.`}</p>
     <div class="fld"><label>Senha da conta do administrador</label><input name="senha" type="password" autocomplete="current-password" placeholder="Digite sua senha" required></div>
     <div class="row"><button type="button" class="sec" data-a="closeModal">Cancelar</button><button class="dg">Excluir definitivamente</button></div></form>`;
   m.classList.add('on');
@@ -535,6 +535,12 @@ document.addEventListener('click', async e => {
       if (k.status !== 'disponivel') throw Error('Chave em uso não pode ser excluída.');
       b.disabled = false; openDel(k);
     }
+    else if (a === 'delUser') {
+      const u = S.data.users.find(x => x.uid === id);
+      if (id === S.user.uid) throw Error('Você não pode excluir a própria conta.');
+      if (S.data.reqs.some(r => r.userId === id && ['solicitada','retirada','devolucao'].includes(r.status))) throw Error('Usuário possui chave em andamento.');
+      b.disabled = false; openDel({id, nome:u.nome}, true);
+    }
   } catch (err) { toast(msg(err), 1); b.disabled = false; }
 });
 document.addEventListener('submit', async e => {
@@ -553,7 +559,8 @@ document.addEventListener('submit', async e => {
     else if (f.id === 'fDel') {
       if (S.user.role !== 'admin') throw Error('Apenas administradores podem excluir chaves.');
       const btn = f.querySelector('.dg'); btn.disabled = true;
-      try { await B.confirmPass(v.senha); await B.delKey(S.del); closeModal(); toast('Chave excluída.'); }
+      const isU = S.delUser;
+      try { await B.confirmPass(v.senha); await (isU ? B.rejectUser(S.del) : B.delKey(S.del)); closeModal(); toast(isU ? 'Conta excluída.' : 'Chave excluída.'); }
       catch (err) { btn.disabled = false; throw err; }
     }
   } catch (err) { toast(msg(err), 1); }
