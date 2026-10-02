@@ -252,6 +252,44 @@ tr.dgp:hover td{background:#f6f9f7}
   .dlg::before{content:"";width:42px;height:4px;border-radius:9px;background:#cdd7d1;align-self:center;flex:0 0 auto}
   #toast{bottom:calc(76px + env(safe-area-inset-bottom))}
 }
+.seg{display:none}
+@media(max-width:700px){
+  .seg{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:6px;margin:8px 0 12px}
+  .seg button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:60px;padding:6px 4px;border-radius:12px;background:#fff;color:var(--mu);border:1px solid var(--bd);font-size:12px;font-weight:600;line-height:1.2;text-align:center;box-shadow:none!important}
+  .seg button b{font-size:20px;line-height:1;color:var(--gd)}
+  .seg button[data-c=a] b{color:#b45309}
+  .seg button[data-c=r] b{color:var(--r)}
+  .seg button.on{background:var(--g);border-color:var(--g);color:#fff}
+  .seg button.on[data-c=a]{background:#b45309;border-color:#b45309}
+  .seg button.on[data-c=r]{background:var(--r);border-color:var(--r)}
+  .seg button.on b{color:#fff}
+
+  .sg>.pnl{display:none}
+  .sg>.pnl.on{display:flex}
+  .cols,.stack{gap:14px}
+  .stack{margin-top:12px}
+
+  .pnl{padding:12px;gap:10px;border-top:4px solid var(--g)}
+  .pnl[data-c=a]{border-top-color:#b45309}
+  .pnl[data-c=r]{border-top-color:var(--r)}
+  .pnl h2.pt{justify-content:space-between;text-align:left;font-size:16px;padding:10px 14px;border-radius:10px;background:var(--g);color:#fff}
+  .pnl h2.pt .n{background:#fff;color:var(--gd)}
+  .pnl[data-c=a] h2.pt{background:#b45309}
+  .pnl[data-c=a] h2.pt .n{color:#b45309}
+  .pnl[data-c=r] h2.pt{background:var(--r)}
+  .pnl[data-c=r] h2.pt .n{color:var(--r)}
+  .pnl .card{padding:14px;border-radius:14px}
+  .pnl .card .ch b{font-size:16px}
+  .pnl .empty{padding:18px;font-size:14px}
+
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .kpi b{font-size:22px}
+  .dg2{grid-template-columns:minmax(0,1fr);gap:12px}
+  .cardx{padding:14px;border-left:4px solid var(--g)}
+  .cardx h3{color:var(--gd);font-size:15px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
+  pre{font-size:11px}
+  ol{padding-left:20px}
+}
 </style>
 </head>
 <body>
@@ -506,7 +544,7 @@ async function makeFB() {
 const B = firebaseConfig.apiKey === 'SUA_API_KEY' ? makeDemo() : await makeFB();
 
 /* ===================== ESTADO E VIEWS ===================== */
-const S = {user:null, data:{keys:[], reqs:[], users:[], logs:[]}, tab:null, q:'', mode:'login', fs:'todos', per:'30', lim:30, dp:'30', lq:'', lp:'30', la:'todas', ll:50};
+const S = {user:null, data:{keys:[], reqs:[], users:[], logs:[]}, tab:null, sec:{}, q:'', mode:'login', fs:'todos', per:'30', lim:30, dp:'30', lq:'', lp:'30', la:'todas', ll:50};
 const TABS = {
   funcionario: [['minhas','Minhas chaves'], ['unidade','Pegar chave'], ['hist','Meu histórico'], ['dash','Estatísticas']],
   guarda: [['fila','Entregar e receber'], ['hist','Histórico'], ['dash','Estatísticas']],
@@ -801,6 +839,27 @@ function render() {
     <div class="usr">${av(u.nome, u.foto)}<div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="conta"><span class="lf">Meu perfil</span><span class="ls">Perfil</span></button><button class="out" data-a="logout">Sair</button></div></header>
     <nav>${tabs.map(t => `<button class="${S.tab === t[0] ? 'on' : ''}" data-a="tab" data-id="${t[0]}"><span class="ic">${IC[t[0]]}</span><span class="lf">${t[1]}</span><span class="ls">${SH[t[0]]}</span>${t[0] === 'sol' && npend ? ` <span class="n">${npend}</span>` : ''}</button>`).join('')}</nav>
     <main id="main">${V[S.tab]()}</main>`;
+  segs();
+}
+function segs() {
+  const c = document.querySelector('#main > .cols, #main > .stack');
+  if (!c) return;
+  const ps = [...c.children].filter(x => x.classList.contains('pnl'));
+  if (ps.length < 2) return;
+  const info = ps.map(p => {
+    const h = p.querySelector('h2.pt'), n = h.querySelector('.n');
+    const l = [...h.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join('').trim();
+    const k = l.toLowerCase();
+    const col = /uso/.test(k) ? 'r' : /aguard|entregar|receber|solicita|troca/.test(k) ? 'a' : 'g';
+    return {l, n:n ? n.textContent : '', c:col};
+  });
+  const cur = S.sec[S.tab];
+  const i = cur !== undefined && cur < ps.length ? cur : Math.max(0, info.findIndex(x => +x.n > 0));
+  const seg = document.createElement('div');
+  seg.className = 'seg'; seg.style.setProperty('--n', ps.length);
+  seg.innerHTML = info.map((x, j) => `<button type="button" class="${j === i ? 'on' : ''}" data-c="${x.c}" data-a="sec" data-id="${j}"><b>${x.n !== '' ? x.n : '+'}</b><span>${esc(x.l)}</span></button>`).join('');
+  c.before(seg); c.classList.add('sg');
+  ps.forEach((p, j) => { p.dataset.c = info[j].c; p.classList.toggle('on', j === i); });
 }
 function refresh() {
   const a = document.activeElement;
@@ -914,7 +973,14 @@ document.addEventListener('click', async e => {
   if (!b || b.tagName === 'SELECT') return;
   const a = b.dataset.a, id = b.dataset.id;
   try {
-    if (a === 'tab') { S.tab = id; S.lim = 30; render(); return; }
+    if (a === 'tab') { S.tab = id; S.lim = 30; delete S.sec[id]; render(); return; }
+    if (a === 'sec') {
+      S.sec[S.tab] = +id;
+      const sg = b.parentNode;
+      sg.querySelectorAll('button').forEach((x, j) => x.classList.toggle('on', j === +id));
+      [...sg.nextElementSibling.children].filter(x => x.classList.contains('pnl')).forEach((p, j) => p.classList.toggle('on', j === +id));
+      return;
+    }
     if (a === 'fs') { S.fs = id; S.lim = 30; render(); return; }
     if (a === 'more') { S.lim += 30; updHist(); return; }
     if (a === 'lmore') { S.ll += 50; updLogs(); return; }
