@@ -16,7 +16,7 @@ small,.hint{color:var(--mu);font-size:14px;margin:0}
 header{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-bottom:4px solid var(--r)}
 header h1{font-size:20px;margin:0;font-weight:700;letter-spacing:.2px}
 header small{color:#d6f0e0;display:block}
-.usr{display:flex;align-items:center;gap:12px}
+.usr{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .usr .who{text-align:right;line-height:1.3}
 .usr .who b{display:block;font-size:15px;font-weight:600}
 
@@ -191,6 +191,9 @@ const ERR = {
   'auth/invalid-credential': 'E-mail ou senha inválidos.',
   'auth/email-already-in-use': 'E-mail já cadastrado.',
   'auth/weak-password': 'Senha fraca (mínimo 6 caracteres).',
+  'auth/invalid-email': 'E-mail inválido.',
+  'auth/requires-recent-login': 'Por segurança, saia e entre novamente antes de alterar.',
+  'auth/operation-not-allowed': 'Alteração de e-mail não permitida. Verifique o console do Firebase.',
   'auth/too-many-requests': 'Muitas tentativas. Aguarde e tente novamente.',
   'permission-denied': 'Sem permissão para esta ação.'
 };
@@ -235,6 +238,8 @@ function makeDemo() {
     async register() { throw Error('Cadastro disponível apenas com Firebase configurado.'); },
     async logout() { this.authCb(null); },
     async confirmPass(p) { if (!p) throw Error('Informe a senha.'); },
+    async changeEmail(p, novo) { await this.confirmPass(p); d.users.find(x => x.uid === S.user.uid).email = novo; S.user.email = novo; emit(); },
+    async changePass(p) { await this.confirmPass(p); },
     listen(u, f) { fn = f; emit(); return () => {}; },
     async request(k, u) {
       const kk = d.keys.find(x => x.id === k.id);
@@ -274,7 +279,9 @@ async function makeFB() {
         if (!u) return f(null);
         const s = await F.getDoc(ref('users', u.uid));
         if (!s.exists()) { toast('Cadastro recusado ou inexistente.', 1); await A.signOut(auth); return f(null); }
-        f({uid:u.uid, ...s.data()});
+        const d = s.data();
+        if (u.email && d.email !== u.email) { try { await F.updateDoc(ref('users', u.uid), {email:u.email}); d.email = u.email; } catch (_) {} }
+        f({uid:u.uid, ...d});
       });
     },
     async login(e, p) { await A.signInWithEmailAndPassword(auth, e, p); },
@@ -295,6 +302,14 @@ async function makeFB() {
         if (/credential|password/.test(e.code || '')) throw Error('Senha incorreta.');
         throw e;
       }
+    },
+    async changePass(atual, nova) {
+      await this.confirmPass(atual);
+      await A.updatePassword(auth.currentUser, nova);
+    },
+    async changeEmail(atual, novo) {
+      await this.confirmPass(atual);
+      await A.verifyBeforeUpdateEmail(auth.currentUser, novo);
     },
     listen(u, fn) {
       const st = {keys:[], reqs:[], users:[]}, emit = () => fn({...st});
@@ -420,7 +435,7 @@ service cloud.firestore {
     match /users/{id} {
       allow read: if request.auth != null;
       allow create: if request.auth.uid == id && request.resource.data.role == 'funcionario' && request.resource.data.aprovado == false && request.resource.data.foto is string && request.resource.data.foto.size() > 100 && request.resource.data.foto.size() < 100000;
-      allow update: if request.auth != null && (role() == 'admin' || (request.auth.uid == id && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['foto']) && request.resource.data.foto is string && request.resource.data.foto.size() < 100000));
+      allow update: if request.auth != null && (role() == 'admin' || (request.auth.uid == id && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['foto','email']) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['email']) || request.resource.data.email == request.auth.token.email) && request.resource.data.foto is string && request.resource.data.foto.size() < 100000));
       allow delete: if request.auth != null && role() == 'admin';
     }
     match /keys/{id} {
@@ -487,7 +502,7 @@ function render() {
   const papel = u.role === 'funcionario' && u.cargo ? u.cargo : ROLE[u.role];
   $('#app').innerHTML = `${B.demo ? '<div class="demo">Modo demonstração: dados em memória. Configure o Firebase para uso real.</div>' : ''}
     <header><div class="hb"><span class="hlogo"><img src="ifma.png" alt="IFMA" onerror="this.parentNode.style.display='none'"></span><div><h1>SAG-ZDC</h1><small>Sistema de Autorização e Guarda de Chaves V1.0<br><a href="https://zedoca.ifma.edu.br/" target="_blank" rel="noopener">IFMA Campus Zé Doca</a></small></div></div>
-    <div class="usr"><label title="Trocar foto" style="cursor:pointer;margin:0">${av(u.nome, u.foto)}<input id="fotoMe" type="file" accept="image/*" hidden></label><div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="logout">Sair</button></div></header>
+    <div class="usr"><label title="Trocar foto" style="cursor:pointer;margin:0">${av(u.nome, u.foto)}<input id="fotoMe" type="file" accept="image/*" hidden></label><div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="conta">Minha conta</button><button class="out" data-a="logout">Sair</button></div></header>
     <nav>${tabs.map(t => `<button class="${S.tab === t[0] ? 'on' : ''}" data-a="tab" data-id="${t[0]}">${t[1]}${t[0] === 'sol' && npend ? ` <span class="n">${npend}</span>` : ''}</button>`).join('')}</nav>
     <main id="main">${V[S.tab]()}</main>`;
 }
@@ -508,6 +523,23 @@ function openDel(k, user) {
   m.querySelector('input').focus();
 }
 function closeModal() { S.del = null; const m = $('#modal'); m.classList.remove('on'); m.innerHTML = ''; }
+function openConta() {
+  S.del = null;
+  const m = $('#modal');
+  m.innerHTML = `<div class="dlg" style="max-height:92vh;overflow:auto"><h3>Minha conta</h3>
+    <form id="fMail" class="fld" style="gap:10px" autocomplete="off"><b>Alterar e-mail</b><small>Atual: ${esc(S.user.email)}</small>
+      <input name="novo" type="email" placeholder="Novo e-mail" required>
+      <input name="senha" type="password" placeholder="Senha atual" autocomplete="current-password" required>
+      <button>Alterar e-mail</button></form>
+    <hr style="width:100%;border:0;border-top:1px solid #e2e8f0">
+    <form id="fPass" class="fld" style="gap:10px" autocomplete="off"><b>Alterar senha</b>
+      <input name="senha" type="password" placeholder="Senha atual" autocomplete="current-password" required>
+      <input name="nova" type="password" minlength="6" placeholder="Nova senha (mínimo 6 caracteres)" autocomplete="new-password" required>
+      <input name="nova2" type="password" minlength="6" placeholder="Repita a nova senha" autocomplete="new-password" required>
+      <button>Alterar senha</button></form>
+    <button type="button" class="sec" data-a="closeModal">Fechar</button></div>`;
+  m.classList.add('on');
+}
 
 /* ===================== EVENTOS ===================== */
 document.addEventListener('click', async e => {
@@ -519,6 +551,7 @@ document.addEventListener('click', async e => {
     if (a === 'mode') { S.mode = id; render(); return; }
     if (a === 'demo') { await B.login(id); return; }
     if (a === 'closeModal') { closeModal(); return; }
+    if (a === 'conta') { openConta(); return; }
     if (a === 'logout') { await B.logout(); return; }
     if (a === 'recheck') {
       const m = await B.me();
@@ -554,6 +587,20 @@ document.addEventListener('submit', async e => {
       const foto = await readFoto(v.foto);
       await B.register(v.nome.trim(), v.siape.trim() || '—', v.cargo, v.email, v.senha, foto, v.siape.trim() ? v.idTipo : '');
       toast('Cadastro enviado. Aguarde a autorização do administrador.');
+    }
+    else if (f.id === 'fMail') {
+      const novo = v.novo.trim();
+      if (novo.toLowerCase() === String(S.user.email).toLowerCase()) throw Error('O novo e-mail é igual ao atual.');
+      await B.changeEmail(v.senha, novo);
+      closeModal();
+      toast(B.demo ? 'E-mail atualizado.' : 'Enviamos um link de confirmação para o novo e-mail. A troca vale após clicar nele.');
+    }
+    else if (f.id === 'fPass') {
+      if (v.nova !== v.nova2) throw Error('As senhas não conferem.');
+      if (v.nova === v.senha) throw Error('A nova senha deve ser diferente da atual.');
+      await B.changePass(v.senha, v.nova);
+      closeModal();
+      toast('Senha alterada com sucesso.');
     }
     else if (f.id === 'fKey') { await B.addKey({nome:v.nome.trim(), local:v.local.trim()}); f.reset(); }
     else if (f.id === 'fDel') {
