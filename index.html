@@ -110,6 +110,11 @@ ol li{margin-bottom:8px}
 #toast.err{background:#b91c1c}
 .demo{background:#fef3c7;color:#92400e;padding:8px 20px;font-size:13px;text-align:center}
 
+.av{width:40px;height:40px;border-radius:50%;object-fit:cover;background:var(--gl);color:var(--gd);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:0 0 auto;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.av.lg{width:88px;height:88px;font-size:28px}
+.av.sm{width:34px;height:34px;font-size:13px}
+.ph{display:flex;align-items:center;gap:12px}
+.ph input{flex:1;min-width:0;padding:10px}
 footer{background:#fff;border-top:1px solid var(--bd);text-align:center;padding:18px 16px;font-size:14px;color:var(--mu)}
 footer a{color:var(--g);font-weight:700;text-decoration:none}
 footer a:hover{text-decoration:underline}
@@ -163,6 +168,20 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = t => t ? new Date(t).toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) : '—';
 const uid = () => Math.random().toString(36).slice(2, 10);
+const ini = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+const av = (n, f, c = '') => f ? `<img class="av ${c}" src="${f}" alt="">` : `<span class="av ${c}">${esc(ini(n))}</span>`;
+const fotoDe = id => (S.data.users.find(x => x.uid === id) || {}).foto;
+const readFoto = file => new Promise((ok, no) => {
+  const img = new Image(), url = URL.createObjectURL(file);
+  img.onload = () => {
+    const s = Math.min(img.width, img.height), c = document.createElement('canvas');
+    c.width = c.height = 192;
+    c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 192, 192);
+    URL.revokeObjectURL(url); ok(c.toDataURL('image/jpeg', .8));
+  };
+  img.onerror = () => no(Error('Imagem inválida.'));
+  img.src = url;
+});
 
 function toast(m, err) {
   const t = $('#toast'); t.textContent = m; t.className = err ? 'err' : ''; t.style.display = 'block';
@@ -188,6 +207,7 @@ const L = {disponivel:'Disponível', reservada:'Aguardando entrega', em_uso:'Em 
   retirada:'Em uso', devolucao:'Aguardando recebimento', devolvida:'Devolvida', cancelada:'Cancelada'};
 const badge = s => `<span class="b ${s}">${L[s]}</span>`;
 const CARGOS = ['Professor', 'Administrativo (TAE)', 'Terceirizado', 'Guarda'];
+const idTxt = u => u.siape && u.siape !== '—' ? `${u.idTipo || 'SIAPE'}: ${u.siape}` : '—';
 
 /* ===================== BACKEND: DEMO (memória) ===================== */
 function makeDemo() {
@@ -234,7 +254,8 @@ function makeDemo() {
     async setRole(id, role) { d.users.find(x => x.uid === id).role = role; emit(); },
     async setApproval(id, ok) { d.users.find(x => x.uid === id).aprovado = ok; emit(); },
     async rejectUser(id) { d.users = d.users.filter(x => x.uid !== id); emit(); },
-    async me() { return S.user; }
+    async me() { return S.user; },
+    async setFoto(id, f) { d.users.find(x => x.uid === id).foto = f; emit(); }
   };
 }
 
@@ -257,11 +278,11 @@ async function makeFB() {
       });
     },
     async login(e, p) { await A.signInWithEmailAndPassword(auth, e, p); },
-    async register(nome, siape, cargo, e, p) {
+    async register(nome, siape, cargo, e, p, foto, idTipo) {
       reg = true;
       try {
         const c = await A.createUserWithEmailAndPassword(auth, e, p);
-        const prof = {nome, siape, cargo, email:e, role:'funcionario', aprovado:false, tCad:Date.now()};
+        const prof = {nome, siape, idTipo, cargo, foto, email:e, role:'funcionario', aprovado:false, tCad:Date.now()};
         await F.setDoc(ref('users', c.user.uid), prof);
         cb({uid:c.user.uid, ...prof});
       } finally { reg = false; }
@@ -284,7 +305,7 @@ async function makeFB() {
         F.onSnapshot(col('keys'), s => { st.keys = s.docs.map(d => ({id:d.id, ...d.data()})); emit(); }),
         F.onSnapshot(q, s => { st.reqs = s.docs.map(d => ({id:d.id, ...d.data()})).sort((a, b) => b.tSol - a.tSol); emit(); }, e => toast(msg(e), 1))
       ];
-      if (u.role === 'admin') un.push(F.onSnapshot(col('users'), s => { st.users = s.docs.map(d => ({uid:d.id, ...d.data()})); emit(); }));
+      if (u.role !== 'funcionario') un.push(F.onSnapshot(col('users'), s => { st.users = s.docs.map(d => ({uid:d.id, ...d.data()})); emit(); }));
       return () => un.forEach(f => f());
     },
     async request(k, u) {
@@ -312,6 +333,7 @@ async function makeFB() {
     setRole(id, role) { return F.updateDoc(ref('users', id), {role}); },
     setApproval(id, ok) { return F.updateDoc(ref('users', id), {aprovado:ok}); },
     rejectUser(id) { return F.deleteDoc(ref('users', id)); },
+    setFoto(id, foto) { return F.updateDoc(ref('users', id), {foto}); },
     async me() { const u = auth.currentUser; const s = await F.getDoc(ref('users', u.uid)); return {uid:u.uid, ...s.data()}; }
   };
 }
@@ -349,7 +371,7 @@ const vUnidade = () => pend() + `<h2>Chaves da unidade</h2>` + (S.data.keys.leng
 const vFila = () => {
   const by = s => S.data.reqs.filter(r => r.status === s);
   const col = (title, list, btn, act, empty) => `<div><h2>${title} <span class="n">${list.length}</span></h2>
-    ${list.length ? list.map(r => `<div class="card"><b>${esc(r.keyName)}</b><small>${esc(r.userName)} · ${fmt(r.tDevSol || r.tRet || r.tSol)}</small>
+    ${list.length ? list.map(r => `<div class="card"><div class="ph">${av(r.userName, fotoDe(r.userId))}<div><b>${esc(r.keyName)}</b><br><small>${esc(r.userName)} · ${fmt(r.tDevSol || r.tRet || r.tSol)}</small></div></div>
     ${btn ? `<button data-a="${act}" data-id="${r.id}">${btn}</button>` : ''}</div>`).join('') : `<div class="empty">${empty}</div>`}</div>`;
   return `<div class="cols">
     ${col('Para entregar', by('solicitada'), 'Entregar chave', 'deliver', 'Nenhuma solicitação.')}
@@ -375,16 +397,16 @@ const vKeys = () => `<h2>Cadastrar chave</h2>
   </tbody></table></div>`;
 
 const vUsers = () => `<h2>Usuários e perfis</h2><p class="hint">Novos cadastros entram como Funcionário. Quem se cadastrou como Guarda deve ser promovido aqui.</p>
-  <div class="tw"><table class="rt"><thead><tr><th>Nome</th><th>Cargo</th><th>E-mail</th><th>SIAPE</th><th>Perfil</th></tr></thead><tbody>
-  ${S.data.users.filter(u => u.aprovado !== false).map(u => `<tr><td data-label="Nome">${esc(u.nome)}</td><td data-label="Cargo">${esc(u.cargo || '—')}</td><td data-label="E-mail">${esc(u.email)}</td><td data-label="SIAPE">${esc(u.siape)}</td><td data-label="Perfil">
+  <div class="tw"><table class="rt"><thead><tr><th>Nome</th><th>Cargo</th><th>E-mail</th><th>Identificação</th><th>Perfil</th></tr></thead><tbody>
+  ${S.data.users.filter(u => u.aprovado !== false).map(u => `<tr><td data-label="Nome"><span class="ph">${av(u.nome, u.foto, 'sm')}${esc(u.nome)}</span></td><td data-label="Cargo">${esc(u.cargo || '—')}</td><td data-label="E-mail">${esc(u.email)}</td><td data-label="Identificação">${esc(idTxt(u))}</td><td data-label="Perfil">
   <select data-a="role" data-id="${u.uid}">${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td></tr>`).join('')}
   </tbody></table></div>`;
 
 const vSol = () => {
   const p = S.data.users.filter(u => u.aprovado === false);
   return `<h2>Solicitações de cadastro <span class="n">${p.length}</span></h2>` + (p.length
-    ? `<div class="grid">${p.map(u => `<div class="card"><div class="ch"><b>${esc(u.nome)}</b><span class="b solicitada">Pendente</span></div>
-      <small>${esc(u.cargo || '—')} · SIAPE: ${esc(u.siape)}<br>${esc(u.email)}<br>Cadastro: ${fmt(u.tCad)}</small>
+    ? `<div class="grid">${p.map(u => `<div class="card"><div class="ch"><div class="ph">${av(u.nome, u.foto, 'lg')}<b>${esc(u.nome)}</b></div><span class="b solicitada">Pendente</span></div>
+      <small>${esc(u.cargo || '—')} · ${esc(idTxt(u))}<br>${esc(u.email)}<br>Cadastro: ${fmt(u.tCad)}</small>
       <div class="row"><button style="flex:1;width:auto" data-a="approve" data-id="${u.uid}">Autorizar</button><button class="sec" style="flex:1;width:auto" data-a="reject" data-id="${u.uid}">Recusar</button></div></div>`).join('')}</div>`
     : `<div class="empty">Nenhuma solicitação pendente.</div>`);
 };
@@ -397,8 +419,9 @@ service cloud.firestore {
     function approved() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('aprovado', true) != false; }
     match /users/{id} {
       allow read: if request.auth != null;
-      allow create: if request.auth.uid == id && request.resource.data.role == 'funcionario' && request.resource.data.aprovado == false;
-      allow update, delete: if request.auth != null && role() == 'admin';
+      allow create: if request.auth.uid == id && request.resource.data.role == 'funcionario' && request.resource.data.aprovado == false && request.resource.data.foto is string && request.resource.data.foto.size() > 100 && request.resource.data.foto.size() < 100000;
+      allow update: if request.auth != null && (role() == 'admin' || (request.auth.uid == id && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['foto']) && request.resource.data.foto is string && request.resource.data.foto.size() < 100000));
+      allow delete: if request.auth != null && role() == 'admin';
     }
     match /keys/{id} {
       allow read: if request.auth != null;
@@ -428,9 +451,10 @@ const loginHTML = () => `<div class="lw"><div class="lcard"><aside class="brand"
     ? `<form id="fLogin"><div class="fld"><label>E-mail</label><input name="email" type="email" placeholder="seu@email.com" autocomplete="email" required></div>
        <div class="fld"><label>Senha</label><input name="senha" type="password" placeholder="Sua senha" autocomplete="current-password" required></div><button>Entrar</button></form>
        ${B.demo ? '' : `<button class="link" data-a="mode" data-id="reg">Primeiro acesso? Cadastre-se</button>`}`
-    : `<form id="fReg"><div class="fld"><label>Nome completo</label><input name="nome" placeholder="Nome completo" autocomplete="name" required></div>
+    : `<form id="fReg"><div class="fld"><label>Foto (obrigatória)</label><div class="ph"><span id="pv">${av('?', null, 'lg')}</span><input name="foto" id="foto" type="file" accept="image/*" required></div></div>
+       <div class="fld"><label>Nome completo</label><input name="nome" placeholder="Nome completo" autocomplete="name" required></div>
        <div class="fld"><label>Cargo</label><select name="cargo" required><option value="">Selecione o cargo</option>${CARGOS.map(c => `<option value="${c}">${c}</option>`).join('')}</select></div>
-       <div class="fld"><label>SIAPE / matrícula (opcional)</label><input name="siape" placeholder="Se houver"></div>
+       <div class="fld"><label>Identificação (opcional)</label><div class="row"><select name="idTipo" style="flex:1 1 130px;width:auto"><option value="SIAPE">SIAPE</option><option value="Matrícula">Matrícula</option><option value="CPF">CPF</option></select><input name="siape" placeholder="Número" inputmode="numeric" style="flex:2 1 180px;width:auto"></div></div>
        <div class="fld"><label>E-mail</label><input name="email" type="email" placeholder="seu@email.com" autocomplete="email" required></div>
        <div class="fld"><label>Senha</label><input name="senha" type="password" minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required></div>
        <div class="fld"><label>Confirmar senha</label><input name="senha2" type="password" minlength="6" placeholder="Repita a senha" autocomplete="new-password" required></div><button>Cadastrar</button></form>
@@ -449,6 +473,13 @@ function render() {
       <button data-a="recheck">Verificar autorização</button><button class="sec" data-a="logout">Sair</button></div></div></div>`;
     return;
   }
+  if (!u.foto && !B.demo) {
+    $('#app').innerHTML = `<div class="lw"><div class="lcard" style="max-width:480px;grid-template-columns:1fr"><div class="login" style="text-align:center"><h3>Foto obrigatória</h3>
+      <p class="hint">Olá, ${esc(u.nome)}. Para continuar, envie uma foto do seu rosto.</p>
+      <div class="ph" style="justify-content:center">${av(u.nome, null, 'lg')}</div>
+      <input id="fotoMe" type="file" accept="image/*"><button class="sec" data-a="logout">Sair</button></div></div></div>`;
+    return;
+  }
   const tabs = TABS[u.role] || TABS.funcionario;
   if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
   const V = {minhas:vMinhas, unidade:vUnidade, fila:vFila, sol:vSol, hist:vHist, keys:vKeys, users:vUsers, guia:vGuia};
@@ -456,7 +487,7 @@ function render() {
   const papel = u.role === 'funcionario' && u.cargo ? u.cargo : ROLE[u.role];
   $('#app').innerHTML = `${B.demo ? '<div class="demo">Modo demonstração: dados em memória. Configure o Firebase para uso real.</div>' : ''}
     <header><div class="hb"><span class="hlogo"><img src="ifma.png" alt="IFMA" onerror="this.parentNode.style.display='none'"></span><div><h1>SAG-ZDC</h1><small>Sistema de Autorização e Guarda de Chaves V1.0<br><a href="https://zedoca.ifma.edu.br/" target="_blank" rel="noopener">IFMA Campus Zé Doca</a></small></div></div>
-    <div class="usr"><div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="logout">Sair</button></div></header>
+    <div class="usr"><label title="Trocar foto" style="cursor:pointer;margin:0">${av(u.nome, u.foto)}<input id="fotoMe" type="file" accept="image/*" hidden></label><div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="logout">Sair</button></div></header>
     <nav>${tabs.map(t => `<button class="${S.tab === t[0] ? 'on' : ''}" data-a="tab" data-id="${t[0]}">${t[1]}${t[0] === 'sol' && npend ? ` <span class="n">${npend}</span>` : ''}</button>`).join('')}</nav>
     <main id="main">${V[S.tab]()}</main>`;
 }
@@ -513,7 +544,9 @@ document.addEventListener('submit', async e => {
     if (f.id === 'fLogin') await B.login(v.email, v.senha);
     else if (f.id === 'fReg') {
       if (v.senha !== v.senha2) throw Error('As senhas não conferem.');
-      await B.register(v.nome.trim(), v.siape.trim() || '—', v.cargo, v.email, v.senha);
+      if (!v.foto || !v.foto.size) throw Error('A foto é obrigatória.');
+      const foto = await readFoto(v.foto);
+      await B.register(v.nome.trim(), v.siape.trim() || '—', v.cargo, v.email, v.senha, foto, v.siape.trim() ? v.idTipo : '');
       toast('Cadastro enviado. Aguarde a autorização do administrador.');
     }
     else if (f.id === 'fKey') { await B.addKey({nome:v.nome.trim(), local:v.local.trim()}); f.reset(); }
@@ -529,6 +562,16 @@ document.addEventListener('input', e => {
   if (e.target.id === 'q') { S.q = e.target.value; $('#tbl tbody').innerHTML = histRows(); }
 });
 document.addEventListener('change', async e => {
+  const t = e.target;
+  if (t.id === 'foto' || t.id === 'fotoMe') {
+    const file = t.files[0]; if (!file) return;
+    try {
+      const f = await readFoto(file);
+      if (t.id === 'foto') $('#pv').innerHTML = av('', f, 'lg');
+      else { await B.setFoto(S.user.uid, f); S.user.foto = f; toast('Foto atualizada.'); render(); }
+    } catch (err) { toast(msg(err), 1); t.value = ''; }
+    return;
+  }
   if (e.target.dataset.a === 'role') {
     try { await B.setRole(e.target.dataset.id, e.target.value); toast('Perfil atualizado.'); }
     catch (err) { toast(msg(err), 1); }
