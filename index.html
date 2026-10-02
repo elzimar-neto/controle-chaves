@@ -2,7 +2,8 @@
 <html lang="pt-BR">
 <head><script src="https://myhub.ia.br/canvas-vendor/tailwind.js"></script>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#00843d">
 <title>SAG-ZDC: Sistema de Autorização e Guarda de Chaves V1.0</title>
 <style>
 :root{--g:#00843d;--gd:#006a31;--gl:#e8f5ee;--r:#cd191e;--bg:#f3f6f4;--tx:#1b2a24;--mu:#5b6b63;--bd:#dfe7e2;--sh:0 1px 2px rgba(16,40,28,.06),0 6px 18px rgba(16,40,28,.07)}
@@ -147,6 +148,56 @@ footer a:hover{text-decoration:underline}
   .rt td.act{padding-top:10px}
   .rt td.act::before{content:none}
   .rt td.act button{width:100%}
+}
+
+button{touch-action:manipulation}
+.ic,.ls{display:none}
+.chips{display:flex;gap:8px;overflow-x:auto;margin:12px 0 4px;padding:2px 0;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+button.chip{flex:0 0 auto;background:#fff;color:var(--mu);border:1px solid var(--bd);border-radius:99px;min-height:38px;padding:0 16px;font-size:14px}
+button.chip:hover{background:var(--gl)}
+button.chip.on,button.chip.on:hover{background:var(--g);color:#fff;border-color:var(--g)}
+tr.dgp td{background:#f6f9f7;color:#3d4f46;font-weight:700;font-size:13px;text-transform:capitalize;padding:8px 14px}
+tr.dgp:hover td{background:#f6f9f7}
+@keyframes sheet{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+
+@media(max-width:700px){
+  body:has(nav){padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+  header{position:sticky;top:0;z-index:15;flex-wrap:nowrap;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;border-bottom-width:3px}
+  .hb{gap:10px;min-width:0}
+  .hlogo{padding:4px 6px;border-radius:8px}
+  .hlogo img{height:30px}
+  header h1{font-size:17px}
+  .hb small{display:none}
+  .usr{width:auto;gap:8px;flex-wrap:nowrap}
+  .usr .who{display:none}
+  .av{width:36px;height:36px}
+  button.out{min-height:36px;padding:0 12px;font-size:14px}
+  .lf{display:none}
+  .ls{display:inline}
+
+  nav{position:fixed;top:auto;bottom:0;left:0;right:0;z-index:20;padding:0 4px env(safe-area-inset-bottom);border-bottom:0;border-top:1px solid var(--bd);box-shadow:0 -6px 20px rgba(16,40,28,.10)}
+  nav button{flex:1 0 60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;min-height:60px;padding:6px 4px;border-bottom:0;border-top:3px solid transparent;font-size:11px;font-weight:600}
+  nav button.on{border-top-color:var(--g);background:var(--gl)}
+  nav button .ic{display:block;font-size:20px;line-height:1}
+  nav .n{position:absolute;top:4px;left:50%;margin-left:8px;font-size:10px;padding:0 6px;background:var(--r)}
+
+  main{padding:6px 14px 24px}
+  h2{font-size:18px}
+  .card{border-radius:16px}
+  .card button{min-height:50px;border-radius:12px;font-size:16px}
+  .chips{margin:12px -14px 4px;padding:2px 14px}
+  .rt tr.dgp{background:none;border:0;box-shadow:none;padding:0;margin:16px 0 6px}
+  .rt tr.dgp td{display:block;background:none;padding:0 2px;font-size:13px;color:var(--mu);text-align:left}
+  .rt td.em{display:none}
+  .rt td[data-label="Chave"]{font-weight:700;font-size:16px}
+
+  .brand{padding:22px 20px;gap:6px}
+  .brand .bn{font-size:13px}
+  #modal{align-items:flex-end;padding:0}
+  .dlg{max-width:none;border-top:0;border-radius:22px 22px 0 0;max-height:90vh;overflow:auto;padding:12px 20px calc(20px + env(safe-area-inset-bottom));animation:sheet .22s ease-out}
+  .dlg::before{content:"";width:42px;height:4px;border-radius:9px;background:#cdd7d1;align-self:center;flex:0 0 auto}
+  #toast{bottom:calc(76px + env(safe-area-inset-bottom))}
 }
 </style>
 </head>
@@ -372,13 +423,15 @@ async function makeFB() {
 const B = firebaseConfig.apiKey === 'SUA_API_KEY' ? makeDemo() : await makeFB();
 
 /* ===================== ESTADO E VIEWS ===================== */
-const S = {user:null, data:{keys:[], reqs:[], users:[]}, tab:null, q:'', mode:'login'};
+const S = {user:null, data:{keys:[], reqs:[], users:[]}, tab:null, q:'', mode:'login', fs:'todos', per:'30', lim:30};
 const TABS = {
   funcionario: [['minhas','Minhas chaves'], ['unidade','Chaves da unidade'], ['hist','Meu histórico']],
   guarda: [['fila','Guarita'], ['hist','Histórico']],
   admin: [['fila','Guarita'], ['sol','Solicitações'], ['hist','Histórico'], ['keys','Gerenciar chaves'], ['users','Usuários'], ['guia','Guia de implantação']]
 };
 const ROLE = {funcionario:'Funcionário', guarda:'Guarda', admin:'Administrador'};
+const IC = {minhas:'🔑', unidade:'🏫', hist:'🕘', fila:'🛎️', sol:'📥', keys:'⚙️', users:'👥', guia:'📖'};
+const SH = {minhas:'Minhas', unidade:'Unidade', hist:'Histórico', fila:'Guarita', sol:'Pedidos', keys:'Chaves', users:'Usuários', guia:'Guia'};
 
 const pend = () => (S.user.role === 'funcionario' && S.user.cargo === 'Guarda')
   ? `<div class="note">Seu cadastro como Guarda aguarda liberação do administrador. Enquanto isso, você tem acesso de funcionário.</div>` : '';
@@ -410,15 +463,44 @@ const vFila = () => {
     ${col('Em uso', by('retirada'), '', '', 'Nenhuma chave em uso.')}</div>`;
 };
 
-const histRows = () => {
-  const q = S.q.toLowerCase();
-  return S.data.reqs.filter(r => !q || (r.keyName + ' ' + r.userName + ' ' + L[r.status]).toLowerCase().includes(q))
-    .map(r => `<tr><td data-label="Solicitação">${fmt(r.tSol)}</td><td data-label="Chave">${esc(r.keyName)}</td><td data-label="Funcionário"><span class="ph">${av(r.userName, fotoDe(r.userId), 'sm')}${esc(r.userName)}</span></td><td data-label="Status">${badge(r.status)}</td>
-    <td data-label="Retirada">${fmt(r.tRet)}</td><td data-label="Devolução">${fmt(r.tDev)}</td><td data-label="Entregue por">${esc(r.guardaRet || '—')}</td><td data-label="Recebida por">${esc(r.guardaDev || '—')}</td></tr>`).join('');
+const DAY = 864e5, ABERTO = ['solicitada','retirada','devolucao'];
+const FS = [['todos','Todos'], ['andamento','Em andamento'], ['devolvida','Devolvidas'], ['cancelada','Canceladas']];
+const PER = [['7','Últimos 7 dias'], ['30','Últimos 30 dias'], ['90','Últimos 90 dias'], ['all','Todo o período']];
+const dayLabel = t => {
+  const z = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const d = new Date(t), diff = Math.round((z(new Date()) - z(d)) / DAY);
+  return diff === 0 ? 'Hoje' : diff === 1 ? 'Ontem' : d.toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
 };
-const vHist = () => `<h2>Histórico</h2><input id="q" placeholder="Filtrar por chave, pessoa ou status" value="${esc(S.q)}">
+const histList = () => {
+  const q = S.q.toLowerCase(), from = S.per === 'all' ? 0 : Date.now() - (+S.per) * DAY;
+  return S.data.reqs.filter(r => r.tSol >= from
+    && (S.fs === 'todos' || (S.fs === 'andamento' ? ABERTO.includes(r.status) : r.status === S.fs))
+    && (!q || (r.keyName + ' ' + r.userName + ' ' + L[r.status]).toLowerCase().includes(q)));
+};
+const cell = (l, v) => `<td data-label="${l}"${v ? '' : ' class="em"'}>${v || '—'}</td>`;
+const histRows = () => {
+  let last = '';
+  const rows = histList().slice(0, S.lim).map(r => {
+    const g = dayLabel(r.tSol), h = g === last ? '' : `<tr class="dgp"><td colspan="8">${g}</td></tr>`;
+    last = g;
+    return h + `<tr>${cell('Solicitação', fmt(r.tSol))}${cell('Chave', esc(r.keyName))}<td data-label="Funcionário"><span class="ph">${av(r.userName, fotoDe(r.userId), 'sm')}${esc(r.userName)}</span></td><td data-label="Status">${badge(r.status)}</td>
+    ${cell('Retirada', r.tRet && fmt(r.tRet))}${cell('Devolução', r.tDev && fmt(r.tDev))}${cell('Entregue por', esc(r.guardaRet))}${cell('Recebida por', esc(r.guardaDev))}</tr>`;
+  }).join('');
+  return rows || `<tr class="dgp"><td colspan="8">Nenhum registro encontrado.</td></tr>`;
+};
+function updHist() {
+  const n = histList().length;
+  $('#tbl tbody').innerHTML = histRows();
+  $('#hcnt').textContent = n;
+  $('#hmore').style.display = n > S.lim ? '' : 'none';
+}
+const vHist = () => { const n = histList().length; return `<h2>Histórico <span class="n" id="hcnt">${n}</span></h2>
+  <div class="row frm"><input id="q" type="search" placeholder="Buscar chave ou pessoa" value="${esc(S.q)}">
+  <select data-a="per" style="flex:1 1 150px;width:auto">${PER.map(([k, v]) => `<option value="${k}" ${S.per === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+  <div class="chips">${FS.map(([k, v]) => `<button class="chip ${S.fs === k ? 'on' : ''}" data-a="fs" data-id="${k}">${v}</button>`).join('')}</div>
   <div class="tw"><table class="rt" id="tbl"><thead><tr><th>Solicitação</th><th>Chave</th><th>Funcionário</th><th>Status</th><th>Retirada</th><th>Devolução</th><th>Entregue por</th><th>Recebida por</th></tr></thead>
-  <tbody>${histRows()}</tbody></table></div>`;
+  <tbody>${histRows()}</tbody></table></div>
+  <button id="hmore" class="sec" data-a="more" style="width:100%;margin-top:12px;${n > S.lim ? '' : 'display:none'}">Carregar mais</button>`; };
 
 const vKeys = () => `<h2>Cadastrar chave</h2>
   <form id="fKey" class="row frm"><input name="nome" placeholder="Nome (ex.: Sala 101)" required><input name="local" placeholder="Local (ex.: Bloco A)" required><button>Adicionar</button></form>
@@ -532,8 +614,8 @@ function render() {
   const papel = u.role === 'funcionario' && u.cargo ? u.cargo : ROLE[u.role];
   $('#app').innerHTML = `${B.demo ? '<div class="demo">Modo demonstração: dados em memória. Configure o Firebase para uso real.</div>' : ''}
     <header><div class="hb"><span class="hlogo"><img src="ifma.png" alt="IFMA" onerror="this.parentNode.style.display='none'"></span><div><h1>SAG-ZDC</h1><small>Sistema de Autorização e Guarda de Chaves V1.0<br><a href="https://zedoca.ifma.edu.br/" target="_blank" rel="noopener">IFMA Campus Zé Doca</a></small></div></div>
-    <div class="usr">${av(u.nome, u.foto)}<div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="conta">Minha conta</button><button class="out" data-a="logout">Sair</button></div></header>
-    <nav>${tabs.map(t => `<button class="${S.tab === t[0] ? 'on' : ''}" data-a="tab" data-id="${t[0]}">${t[1]}${t[0] === 'sol' && npend ? ` <span class="n">${npend}</span>` : ''}</button>`).join('')}</nav>
+    <div class="usr">${av(u.nome, u.foto)}<div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="conta"><span class="lf">Minha conta</span><span class="ls">Conta</span></button><button class="out" data-a="logout">Sair</button></div></header>
+    <nav>${tabs.map(t => `<button class="${S.tab === t[0] ? 'on' : ''}" data-a="tab" data-id="${t[0]}"><span class="ic">${IC[t[0]]}</span><span class="lf">${t[1]}</span><span class="ls">${SH[t[0]]}</span>${t[0] === 'sol' && npend ? ` <span class="n">${npend}</span>` : ''}</button>`).join('')}</nav>
     <main id="main">${V[S.tab]()}</main>`;
 }
 function refresh() {
@@ -603,7 +685,9 @@ document.addEventListener('click', async e => {
   if (!b || b.tagName === 'SELECT') return;
   const a = b.dataset.a, id = b.dataset.id;
   try {
-    if (a === 'tab') { S.tab = id; render(); return; }
+    if (a === 'tab') { S.tab = id; S.lim = 30; render(); return; }
+    if (a === 'fs') { S.fs = id; S.lim = 30; render(); return; }
+    if (a === 'more') { S.lim += 30; updHist(); return; }
     if (a === 'mode') { S.mode = id; render(); return; }
     if (a === 'demo') { await B.login(id); return; }
     if (a === 'closeModal') { closeModal(); return; }
@@ -671,7 +755,7 @@ document.addEventListener('submit', async e => {
   } catch (err) { toast(msg(err), 1); }
 });
 document.addEventListener('input', e => {
-  if (e.target.id === 'q') { S.q = e.target.value; $('#tbl tbody').innerHTML = histRows(); }
+  if (e.target.id === 'q') { S.q = e.target.value; S.lim = 30; updHist(); }
 });
 document.addEventListener('change', async e => {
   const t = e.target;
@@ -685,6 +769,7 @@ document.addEventListener('change', async e => {
     } catch (err) { toast(msg(err), 1); t.value = ''; }
     return;
   }
+  if (t.dataset.a === 'per') { S.per = t.value; S.lim = 30; render(); return; }
   if (e.target.dataset.a === 'role') {
     try { await B.setRole(e.target.dataset.id, e.target.value); toast('Perfil atualizado.'); }
     catch (err) { toast(msg(err), 1); }
