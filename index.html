@@ -73,9 +73,9 @@ tbody tr:hover{background:#fafcfb}
 tr:last-child td{border-bottom:0}
 td select{min-width:150px}
 
-.hb{display:flex;align-items:center;gap:14px}
-.hlogo{display:flex;flex:0 0 auto}
-.hlogo img{height:48px;width:auto;display:block;filter:brightness(0) invert(1)}
+.hb{display:flex;align-items:center;gap:12px}
+.hlogo{background:#fff;border-radius:10px;padding:5px 8px;display:flex;flex:0 0 auto}
+.hlogo img{height:42px;width:auto;display:block}
 header small a{color:#fff;font-weight:600}
 
 .lw{flex:1;display:flex;align-items:center;justify-content:center;padding:28px 16px;position:relative;overflow:hidden;background:radial-gradient(900px 500px at 8% 0%,rgba(0,132,61,.20),transparent 60%),radial-gradient(700px 500px at 100% 100%,rgba(205,25,30,.10),transparent 60%),linear-gradient(180deg,#eef5f0,#e0ebe4)}
@@ -83,16 +83,16 @@ header small a{color:#fff;font-weight:600}
 .lcard{position:relative;z-index:1;width:100%;max-width:880px;display:grid;grid-template-columns:5fr 6fr;background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 24px 60px rgba(10,50,30,.22),0 2px 6px rgba(10,50,30,.10)}
 .brand{position:relative;color:#fff;text-align:center;padding:40px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px),radial-gradient(circle at 20% 12%,rgba(255,255,255,.20),transparent 45%),linear-gradient(160deg,#00a04a,#006a31 60%,#004d24)}
 .brand::after{content:"";position:absolute;top:0;right:0;bottom:0;width:5px;background:var(--r)}
-.brand h1{margin:0;font-size:42px;font-weight:800;letter-spacing:1.5px}
+.logo{display:flex;margin-bottom:4px}
+.logo img{display:block;height:120px;width:auto;max-width:240px;object-fit:contain;filter:invert(1) grayscale(1) brightness(20);mix-blend-mode:screen}
+.brand h1{margin:6px 0 0;font-size:36px;font-weight:800;letter-spacing:1.5px}
 .brand .bn{margin:0;font-size:15px;line-height:1.45;color:#d6f0e0;max-width:260px}
 .brand a{color:#fff;border:1px solid rgba(255,255,255,.55);border-radius:99px;padding:7px 18px;font-size:14px;font-weight:600;text-decoration:none;margin-top:6px;background:rgba(255,255,255,.10)}
 .brand a:hover{background:rgba(255,255,255,.25)}
-.login{width:100%;padding:36px 34px;display:flex;flex-direction:column;justify-content:center;gap:14px;background:linear-gradient(180deg,#fff,#f9fcfa)}
-.llogo{display:flex;justify-content:center;margin-bottom:4px}
-.llogo img{display:block;height:84px;width:auto;max-width:100%;object-fit:contain}
+.login{width:100%;padding:40px 34px;display:flex;flex-direction:column;justify-content:center;gap:14px;background:linear-gradient(180deg,#fff,#f9fcfa)}
 .login form{display:flex;flex-direction:column;gap:14px}
 .login h3{margin:0 0 2px;font-size:24px;font-weight:700;color:var(--gd)}
-@media(max-width:700px){.lw{padding:16px 12px}.lcard{grid-template-columns:1fr}.brand{padding:28px 20px}.brand::after{top:auto;left:0;width:auto;height:5px}.brand h1{font-size:32px}.llogo img{height:64px}}
+@media(max-width:700px){.lw{padding:16px 12px}.lcard{grid-template-columns:1fr}.brand{padding:28px 20px}.brand::after{top:auto;left:0;width:auto;height:5px}.brand h1{font-size:28px}.logo img{height:64px}}
 
 #modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(15,30,22,.55);backdrop-filter:blur(3px)}
 #modal.on{display:flex}
@@ -231,7 +231,10 @@ function makeDemo() {
     },
     async addKey(k) { d.keys.push({id:uid(), ...k, status:'disponivel'}); emit(); },
     async delKey(id) { d.keys = d.keys.filter(x => x.id !== id); emit(); },
-    async setRole(id, role) { d.users.find(x => x.uid === id).role = role; emit(); }
+    async setRole(id, role) { d.users.find(x => x.uid === id).role = role; emit(); },
+    async setApproval(id, ok) { d.users.find(x => x.uid === id).aprovado = ok; emit(); },
+    async rejectUser(id) { d.users = d.users.filter(x => x.uid !== id); emit(); },
+    async me() { return S.user; }
   };
 }
 
@@ -249,7 +252,8 @@ async function makeFB() {
         if (reg) return;
         if (!u) return f(null);
         const s = await F.getDoc(ref('users', u.uid));
-        f(s.exists() ? {uid:u.uid, ...s.data()} : null);
+        if (!s.exists()) { toast('Cadastro recusado ou inexistente.', 1); await A.signOut(auth); return f(null); }
+        f({uid:u.uid, ...s.data()});
       });
     },
     async login(e, p) { await A.signInWithEmailAndPassword(auth, e, p); },
@@ -257,7 +261,7 @@ async function makeFB() {
       reg = true;
       try {
         const c = await A.createUserWithEmailAndPassword(auth, e, p);
-        const prof = {nome, siape, cargo, email:e, role:'funcionario'};
+        const prof = {nome, siape, cargo, email:e, role:'funcionario', aprovado:false, tCad:Date.now()};
         await F.setDoc(ref('users', c.user.uid), prof);
         cb({uid:c.user.uid, ...prof});
       } finally { reg = false; }
@@ -305,7 +309,10 @@ async function makeFB() {
     },
     addKey(k) { return F.addDoc(col('keys'), {...k, status:'disponivel'}); },
     delKey(id) { return F.deleteDoc(ref('keys', id)); },
-    setRole(id, role) { return F.updateDoc(ref('users', id), {role}); }
+    setRole(id, role) { return F.updateDoc(ref('users', id), {role}); },
+    setApproval(id, ok) { return F.updateDoc(ref('users', id), {aprovado:ok}); },
+    rejectUser(id) { return F.deleteDoc(ref('users', id)); },
+    async me() { const u = auth.currentUser; const s = await F.getDoc(ref('users', u.uid)); return {uid:u.uid, ...s.data()}; }
   };
 }
 
@@ -316,7 +323,7 @@ const S = {user:null, data:{keys:[], reqs:[], users:[]}, tab:null, q:'', mode:'l
 const TABS = {
   funcionario: [['minhas','Minhas chaves'], ['unidade','Chaves da unidade'], ['hist','Meu histórico']],
   guarda: [['fila','Guarita'], ['hist','Histórico']],
-  admin: [['fila','Guarita'], ['hist','Histórico'], ['keys','Gerenciar chaves'], ['users','Usuários'], ['guia','Guia de implantação']]
+  admin: [['fila','Guarita'], ['sol','Solicitações'], ['hist','Histórico'], ['keys','Gerenciar chaves'], ['users','Usuários'], ['guia','Guia de implantação']]
 };
 const ROLE = {funcionario:'Funcionário', guarda:'Guarda', admin:'Administrador'};
 
@@ -369,19 +376,29 @@ const vKeys = () => `<h2>Cadastrar chave</h2>
 
 const vUsers = () => `<h2>Usuários e perfis</h2><p class="hint">Novos cadastros entram como Funcionário. Quem se cadastrou como Guarda deve ser promovido aqui.</p>
   <div class="tw"><table class="rt"><thead><tr><th>Nome</th><th>Cargo</th><th>E-mail</th><th>SIAPE</th><th>Perfil</th></tr></thead><tbody>
-  ${S.data.users.map(u => `<tr><td data-label="Nome">${esc(u.nome)}</td><td data-label="Cargo">${esc(u.cargo || '—')}</td><td data-label="E-mail">${esc(u.email)}</td><td data-label="SIAPE">${esc(u.siape)}</td><td data-label="Perfil">
+  ${S.data.users.filter(u => u.aprovado !== false).map(u => `<tr><td data-label="Nome">${esc(u.nome)}</td><td data-label="Cargo">${esc(u.cargo || '—')}</td><td data-label="E-mail">${esc(u.email)}</td><td data-label="SIAPE">${esc(u.siape)}</td><td data-label="Perfil">
   <select data-a="role" data-id="${u.uid}">${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td></tr>`).join('')}
   </tbody></table></div>`;
+
+const vSol = () => {
+  const p = S.data.users.filter(u => u.aprovado === false);
+  return `<h2>Solicitações de cadastro <span class="n">${p.length}</span></h2>` + (p.length
+    ? `<div class="grid">${p.map(u => `<div class="card"><div class="ch"><b>${esc(u.nome)}</b><span class="b solicitada">Pendente</span></div>
+      <small>${esc(u.cargo || '—')} · SIAPE: ${esc(u.siape)}<br>${esc(u.email)}<br>Cadastro: ${fmt(u.tCad)}</small>
+      <div class="row"><button style="flex:1;width:auto" data-a="approve" data-id="${u.uid}">Autorizar</button><button class="sec" style="flex:1;width:auto" data-a="reject" data-id="${u.uid}">Recusar</button></div></div>`).join('')}</div>`
+    : `<div class="empty">Nenhuma solicitação pendente.</div>`);
+};
 
 const RULES = `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function role() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role; }
     function staff() { return request.auth != null && role() in ['guarda','admin']; }
+    function approved() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('aprovado', true) != false; }
     match /users/{id} {
       allow read: if request.auth != null;
-      allow create: if request.auth.uid == id && request.resource.data.role == 'funcionario';
-      allow update: if request.auth != null && role() == 'admin';
+      allow create: if request.auth.uid == id && request.resource.data.role == 'funcionario' && request.resource.data.aprovado == false;
+      allow update, delete: if request.auth != null && role() == 'admin';
     }
     match /keys/{id} {
       allow read: if request.auth != null;
@@ -390,7 +407,7 @@ service cloud.firestore {
     }
     match /requests/{id} {
       allow read: if staff() || (request.auth != null && resource.data.userId == request.auth.uid);
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'solicitada';
+      allow create: if request.auth != null && approved() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'solicitada';
       allow update: if staff() || (request.auth != null && resource.data.userId == request.auth.uid && request.resource.data.status in ['devolucao','cancelada']);
     }
   }
@@ -399,14 +416,14 @@ const vGuia = () => `<h2>Guia de implantação</h2><ol>
   <li><b>Firebase Console</b> → criar projeto → <i>Authentication</i> → ativar <b>E-mail/senha</b> → <i>Firestore Database</i> → criar em modo produção.</li>
   <li><i>Configurações do projeto</i> → <i>Seus apps</i> → app Web → copiar a config para <code>firebaseConfig</code> no início do script.</li>
   <li>Firestore → <i>Regras</i> → colar as regras abaixo e publicar.</li>
-  <li><b>Primeiro admin:</b> cadastre-se no app e, no Firestore, edite <code>users/{uid}.role</code> para <code>admin</code>. Depois promova guardas na aba Usuários.</li>
+  <li><b>Primeiro admin:</b> cadastre-se no app e, no Firestore, edite <code>users/{uid}.role</code> para <code>admin</code> e <code>aprovado</code> para <code>true</code>. Depois promova guardas na aba Usuários.</li>
   <li><b>GitHub:</b> crie um repositório, envie o <code>index.html</code> → <i>Settings → Pages</i> → branch <code>main</code> / root.</li>
   <li>Firebase → Authentication → <i>Configurações → Domínios autorizados</i> → adicionar <code>seu-usuario.github.io</code>.</li>
   <li>Cadastre as chaves na aba <i>Gerenciar chaves</i>.</li></ol>
   <h2>Regras do Firestore</h2><pre>${esc(RULES)}</pre>
   <p class="hint">Fluxo: Funcionário solicita → Guarda entrega → Funcionário devolve → Guarda confirma recebimento. Para produção rigorosa, mova as transições para Cloud Functions.</p>`;
 
-const loginHTML = () => `<div class="lw"><div class="lcard"><aside class="brand"><h1>SAG-ZDC</h1><p class="bn">Sistema de Autorização e Guarda de Chaves V1.0</p><a href="https://zedoca.ifma.edu.br/" target="_blank" rel="noopener">IFMA Campus Zé Doca</a></aside><div class="login"><div class="llogo"><img src="ifma.png" alt="IFMA" onerror="this.parentNode.style.display='none'"></div><h3>${S.mode === 'login' ? 'Acessar o sistema' : 'Criar conta'}</h3>
+const loginHTML = () => `<div class="lw"><div class="lcard"><aside class="brand"><div class="logo"><img src="ifma.png" alt="IFMA" onerror="this.parentNode.style.display='none'"></div><h1>SAG-ZDC</h1><p class="bn">Sistema de Autorização e Guarda de Chaves V1.0</p><a href="https://zedoca.ifma.edu.br/" target="_blank" rel="noopener">IFMA Campus Zé Doca</a></aside><div class="login"><h3>${S.mode === 'login' ? 'Acessar o sistema' : 'Criar conta'}</h3>
   ${S.mode === 'login'
     ? `<form id="fLogin"><div class="fld"><label>E-mail</label><input name="email" type="email" placeholder="seu@email.com" autocomplete="email" required></div>
        <div class="fld"><label>Senha</label><input name="senha" type="password" placeholder="Sua senha" autocomplete="current-password" required></div><button>Entrar</button></form>
@@ -415,7 +432,8 @@ const loginHTML = () => `<div class="lw"><div class="lcard"><aside class="brand"
        <div class="fld"><label>Cargo</label><select name="cargo" required><option value="">Selecione o cargo</option>${CARGOS.map(c => `<option value="${c}">${c}</option>`).join('')}</select></div>
        <div class="fld"><label>SIAPE / matrícula (opcional)</label><input name="siape" placeholder="Se houver"></div>
        <div class="fld"><label>E-mail</label><input name="email" type="email" placeholder="seu@email.com" autocomplete="email" required></div>
-       <div class="fld"><label>Senha</label><input name="senha" type="password" minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required></div><button>Cadastrar</button></form>
+       <div class="fld"><label>Senha</label><input name="senha" type="password" minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required></div>
+       <div class="fld"><label>Confirmar senha</label><input name="senha2" type="password" minlength="6" placeholder="Repita a senha" autocomplete="new-password" required></div><button>Cadastrar</button></form>
        <button class="link" data-a="mode" data-id="login">Já tenho conta</button>`}
   ${B.demo ? `<hr style="width:100%;border:0;border-top:1px solid #e2e8f0"><small>Modo demonstração — acesso rápido:</small>
     <button class="sec" data-a="demo" data-id="funcionario@ifma.edu.br">Entrar como Funcionário</button>
@@ -425,14 +443,21 @@ const loginHTML = () => `<div class="lw"><div class="lcard"><aside class="brand"
 function render() {
   const u = S.user;
   if (!u) { $('#app').innerHTML = loginHTML(); return; }
+  if (u.aprovado === false) {
+    $('#app').innerHTML = `<div class="lw"><div class="lcard" style="max-width:480px;grid-template-columns:1fr"><div class="login" style="text-align:center"><h3>Aguardando autorização</h3>
+      <p class="hint">Olá, ${esc(u.nome)}. Seu cadastro foi enviado e precisa ser autorizado pelo administrador antes do primeiro acesso.</p>
+      <button data-a="recheck">Verificar autorização</button><button class="sec" data-a="logout">Sair</button></div></div></div>`;
+    return;
+  }
   const tabs = TABS[u.role] || TABS.funcionario;
   if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
-  const V = {minhas:vMinhas, unidade:vUnidade, fila:vFila, hist:vHist, keys:vKeys, users:vUsers, guia:vGuia};
+  const V = {minhas:vMinhas, unidade:vUnidade, fila:vFila, sol:vSol, hist:vHist, keys:vKeys, users:vUsers, guia:vGuia};
+  const npend = S.data.users.filter(x => x.aprovado === false).length;
   const papel = u.role === 'funcionario' && u.cargo ? u.cargo : ROLE[u.role];
   $('#app').innerHTML = `${B.demo ? '<div class="demo">Modo demonstração: dados em memória. Configure o Firebase para uso real.</div>' : ''}
     <header><div class="hb"><span class="hlogo"><img src="ifma.png" alt="IFMA" onerror="this.parentNode.style.display='none'"></span><div><h1>SAG-ZDC</h1><small>Sistema de Autorização e Guarda de Chaves V1.0<br><a href="https://zedoca.ifma.edu.br/" target="_blank" rel="noopener">IFMA Campus Zé Doca</a></small></div></div>
     <div class="usr"><div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="logout">Sair</button></div></header>
-    <nav>${tabs.map(t => `<button class="${S.tab === t[0] ? 'on' : ''}" data-a="tab" data-id="${t[0]}">${t[1]}</button>`).join('')}</nav>
+    <nav>${tabs.map(t => `<button class="${S.tab === t[0] ? 'on' : ''}" data-a="tab" data-id="${t[0]}">${t[1]}${t[0] === 'sol' && npend ? ` <span class="n">${npend}</span>` : ''}</button>`).join('')}</nav>
     <main id="main">${V[S.tab]()}</main>`;
 }
 function refresh() {
@@ -464,9 +489,16 @@ document.addEventListener('click', async e => {
     if (a === 'demo') { await B.login(id); return; }
     if (a === 'closeModal') { closeModal(); return; }
     if (a === 'logout') { await B.logout(); return; }
+    if (a === 'recheck') {
+      const m = await B.me();
+      if (m.aprovado === false) toast('Ainda aguardando autorização.', 1); else start(m);
+      return;
+    }
     b.disabled = true;
     if (a === 'request') { await B.request(S.data.keys.find(k => k.id === id), S.user); toast('Chave solicitada! Retire na guarita.'); S.tab = 'minhas'; render(); }
     else if (T[a]) { await B.act(a, id, S.user); toast('Registrado com sucesso.'); }
+    else if (a === 'approve') { await B.setApproval(id, true); toast('Conta autorizada.'); }
+    else if (a === 'reject') { await B.rejectUser(id); toast('Solicitação recusada.'); }
     else if (a === 'delKey') {
       const k = S.data.keys.find(k => k.id === id);
       if (k.status !== 'disponivel') throw Error('Chave em uso não pode ser excluída.');
@@ -480,8 +512,9 @@ document.addEventListener('submit', async e => {
   try {
     if (f.id === 'fLogin') await B.login(v.email, v.senha);
     else if (f.id === 'fReg') {
+      if (v.senha !== v.senha2) throw Error('As senhas não conferem.');
       await B.register(v.nome.trim(), v.siape.trim() || '—', v.cargo, v.email, v.senha);
-      if (v.cargo === 'Guarda') toast('Cadastro realizado. O administrador precisa liberar o perfil de Guarda.');
+      toast('Cadastro enviado. Aguarde a autorização do administrador.');
     }
     else if (f.id === 'fKey') { await B.addKey({nome:v.nome.trim(), local:v.local.trim()}); f.reset(); }
     else if (f.id === 'fDel') {
@@ -504,13 +537,14 @@ document.addEventListener('change', async e => {
 
 /* ===================== INÍCIO ===================== */
 let unsub = null;
-B.onAuth(u => {
+function start(u) {
   if (unsub) { unsub(); unsub = null; }
   S.user = u; S.tab = null;
-  if (u) unsub = B.listen(u, d => { d.keys.sort((a, b) => a.nome.localeCompare(b.nome)); S.data = d; refresh(); });
+  if (u && u.aprovado !== false) unsub = B.listen(u, d => { d.keys.sort((a, b) => a.nome.localeCompare(b.nome)); S.data = d; refresh(); });
   else S.data = {keys:[], reqs:[], users:[]};
   render();
-});
+}
+B.onAuth(start);
 </script>
 </body>
 </html>
