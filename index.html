@@ -113,6 +113,11 @@ ol li{margin-bottom:8px}
 .av{width:40px;height:40px;border-radius:50%;object-fit:cover;background:var(--gl);color:var(--gd);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:0 0 auto;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .av.lg{width:88px;height:88px;font-size:28px}
 .av.sm{width:34px;height:34px;font-size:13px}
+.av.md{width:52px;height:52px;font-size:18px}
+img.av{cursor:zoom-in}
+#zoom{position:fixed;z-index:70;display:none;pointer-events:none;width:220px;height:220px;border-radius:16px;object-fit:cover;background:#fff;border:3px solid #fff;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+#zoom.on{display:block}
+.lbimg{width:min(80vw,320px);height:min(80vw,320px);object-fit:cover;border-radius:16px;cursor:zoom-out}
 .ph{display:flex;align-items:center;gap:12px}
 .ph input{flex:1;min-width:0;padding:10px}
 footer{background:#fff;border-top:1px solid var(--bd);text-align:center;padding:18px 16px;font-size:14px;color:var(--mu)}
@@ -150,6 +155,7 @@ footer a:hover{text-decoration:underline}
 <footer>Desenvolvido por Grupo <a href="https://maamute.com.br/" target="_blank" rel="noopener">MAAMUTE</a>. &copy; Copyright 2026, Todos os Direitos Reservados.</footer>
 <div id="toast"></div>
 <div id="modal"></div>
+<img id="zoom" alt="">
 
 <script type="module">
 /* ========= CONFIGURAÇÃO FIREBASE ========= */
@@ -169,8 +175,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const fmt = t => t ? new Date(t).toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) : '—';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const ini = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
-const av = (n, f, c = '') => f ? `<img class="av ${c}" src="${f}" alt="">` : `<span class="av ${c}">${esc(ini(n))}</span>`;
-const fotoDe = id => (S.data.users.find(x => x.uid === id) || {}).foto;
+const av = (n, f, c = '') => f ? `<img class="av ${c}" src="${f}" alt="${esc(n)}">` : `<span class="av ${c}">${esc(ini(n))}</span>`;
+const fotoDe = id => S.user && S.user.uid === id ? S.user.foto : (S.data.users.find(x => x.uid === id) || {}).foto;
 const readFoto = file => new Promise((ok, no) => {
   const img = new Image(), url = URL.createObjectURL(file);
   img.onload = () => {
@@ -226,7 +232,10 @@ function makeDemo() {
     reqs: []
   };
   let fn = () => {};
-  const emit = () => fn({keys:d.keys.map(x => ({...x})), reqs:d.reqs.map(x => ({...x})), users:d.users.map(x => ({...x}))});
+  const emit = () => {
+    const m = d.users.find(x => x.uid === (S.user || {}).uid);
+    fn({keys:d.keys.map(x => ({...x})), reqs:d.reqs.map(x => ({...x})), users:d.users.map(x => ({...x})), me:m && {...m}});
+  };
   return {
     demo: true, authCb: () => {},
     onAuth(f) { this.authCb = f; f(null); },
@@ -260,7 +269,10 @@ function makeDemo() {
     async setApproval(id, ok) { d.users.find(x => x.uid === id).aprovado = ok; emit(); },
     async rejectUser(id) { d.users = d.users.filter(x => x.uid !== id); emit(); },
     async me() { return S.user; },
-    async setFoto(id, f) { d.users.find(x => x.uid === id).foto = f; emit(); }
+    async setFoto(id, f) { d.users.find(x => x.uid === id).foto = f; emit(); },
+    async requestFoto(id, f) { d.users.find(x => x.uid === id).fotoPendente = f; emit(); },
+    async approveFoto(id, f) { const u = d.users.find(x => x.uid === id); u.foto = f; delete u.fotoPendente; emit(); },
+    async rejectFoto(id) { delete d.users.find(x => x.uid === id).fotoPendente; emit(); }
   };
 }
 
@@ -317,6 +329,7 @@ async function makeFB() {
         ? F.query(col('requests'), F.where('userId', '==', u.uid))
         : F.query(col('requests'), F.orderBy('tSol', 'desc'), F.limit(300));
       const un = [
+        F.onSnapshot(ref('users', u.uid), s => { if (s.exists()) { st.me = {uid:s.id, ...s.data()}; emit(); } }),
         F.onSnapshot(col('keys'), s => { st.keys = s.docs.map(d => ({id:d.id, ...d.data()})); emit(); }),
         F.onSnapshot(q, s => { st.reqs = s.docs.map(d => ({id:d.id, ...d.data()})).sort((a, b) => b.tSol - a.tSol); emit(); }, e => toast(msg(e), 1))
       ];
@@ -349,6 +362,9 @@ async function makeFB() {
     setApproval(id, ok) { return F.updateDoc(ref('users', id), {aprovado:ok}); },
     rejectUser(id) { return F.deleteDoc(ref('users', id)); },
     setFoto(id, foto) { return F.updateDoc(ref('users', id), {foto}); },
+    requestFoto(id, fotoPendente) { return F.updateDoc(ref('users', id), {fotoPendente}); },
+    approveFoto(id, foto) { return F.updateDoc(ref('users', id), {foto, fotoPendente:F.deleteField()}); },
+    rejectFoto(id) { return F.updateDoc(ref('users', id), {fotoPendente:F.deleteField()}); },
     async me() { const u = auth.currentUser; const s = await F.getDoc(ref('users', u.uid)); return {uid:u.uid, ...s.data()}; }
   };
 }
@@ -386,7 +402,7 @@ const vUnidade = () => pend() + `<h2>Chaves da unidade</h2>` + (S.data.keys.leng
 const vFila = () => {
   const by = s => S.data.reqs.filter(r => r.status === s);
   const col = (title, list, btn, act, empty) => `<div><h2>${title} <span class="n">${list.length}</span></h2>
-    ${list.length ? list.map(r => `<div class="card"><div class="ph">${av(r.userName, fotoDe(r.userId))}<div><b>${esc(r.keyName)}</b><br><small>${esc(r.userName)} · ${fmt(r.tDevSol || r.tRet || r.tSol)}</small></div></div>
+    ${list.length ? list.map(r => `<div class="card"><div class="ph">${av(r.userName, fotoDe(r.userId), 'md')}<div><b>${esc(r.keyName)}</b><br><small>${esc(r.userName)} · ${fmt(r.tDevSol || r.tRet || r.tSol)}</small></div></div>
     ${btn ? `<button data-a="${act}" data-id="${r.id}">${btn}</button>` : ''}</div>`).join('') : `<div class="empty">${empty}</div>`}</div>`;
   return `<div class="cols">
     ${col('Para entregar', by('solicitada'), 'Entregar chave', 'deliver', 'Nenhuma solicitação.')}
@@ -397,7 +413,7 @@ const vFila = () => {
 const histRows = () => {
   const q = S.q.toLowerCase();
   return S.data.reqs.filter(r => !q || (r.keyName + ' ' + r.userName + ' ' + L[r.status]).toLowerCase().includes(q))
-    .map(r => `<tr><td data-label="Solicitação">${fmt(r.tSol)}</td><td data-label="Chave">${esc(r.keyName)}</td><td data-label="Funcionário">${esc(r.userName)}</td><td data-label="Status">${badge(r.status)}</td>
+    .map(r => `<tr><td data-label="Solicitação">${fmt(r.tSol)}</td><td data-label="Chave">${esc(r.keyName)}</td><td data-label="Funcionário"><span class="ph">${av(r.userName, fotoDe(r.userId), 'sm')}${esc(r.userName)}</span></td><td data-label="Status">${badge(r.status)}</td>
     <td data-label="Retirada">${fmt(r.tRet)}</td><td data-label="Devolução">${fmt(r.tDev)}</td><td data-label="Entregue por">${esc(r.guardaRet || '—')}</td><td data-label="Recebida por">${esc(r.guardaDev || '—')}</td></tr>`).join('');
 };
 const vHist = () => `<h2>Histórico</h2><input id="q" placeholder="Filtrar por chave, pessoa ou status" value="${esc(S.q)}">
@@ -417,13 +433,21 @@ const vUsers = () => `<h2>Usuários e perfis</h2><p class="hint">Novos cadastros
   <select data-a="role" data-id="${u.uid}">${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td><td class="act">${u.uid === S.user.uid ? '' : `<button class="sec" data-a="delUser" data-id="${u.uid}">Excluir</button>`}</td></tr>`).join('')}
   </tbody></table></div>`;
 
+const fotosHTML = () => {
+  const f = S.data.users.filter(u => u.fotoPendente && u.aprovado !== false);
+  return `<h2>Trocas de foto <span class="n">${f.length}</span></h2>` + (f.length
+    ? `<div class="grid">${f.map(u => `<div class="card"><b>${esc(u.nome)}</b><div class="ph">${av(u.nome, u.foto, 'lg')}<span>→</span>${av(u.nome, u.fotoPendente, 'lg')}</div>
+      <small>Atual → Nova (passe o mouse ou clique para ampliar)</small>
+      <div class="row"><button style="flex:1;width:auto" data-a="photoOk" data-id="${u.uid}">Autorizar</button><button class="sec" style="flex:1;width:auto" data-a="photoNo" data-id="${u.uid}">Recusar</button></div></div>`).join('')}</div>`
+    : `<div class="empty">Nenhuma troca de foto pendente.</div>`);
+};
 const vSol = () => {
   const p = S.data.users.filter(u => u.aprovado === false);
   return `<h2>Solicitações de cadastro <span class="n">${p.length}</span></h2>` + (p.length
     ? `<div class="grid">${p.map(u => `<div class="card"><div class="ch"><div class="ph">${av(u.nome, u.foto, 'lg')}<b>${esc(u.nome)}</b></div><span class="b solicitada">Pendente</span></div>
       <small>${esc(u.cargo || '—')} · ${esc(idTxt(u))}<br>${esc(u.email)}<br>Cadastro: ${fmt(u.tCad)}</small>
       <div class="row"><button style="flex:1;width:auto" data-a="approve" data-id="${u.uid}">Autorizar</button><button class="sec" style="flex:1;width:auto" data-a="reject" data-id="${u.uid}">Recusar</button></div></div>`).join('')}</div>`
-    : `<div class="empty">Nenhuma solicitação pendente.</div>`);
+    : `<div class="empty">Nenhuma solicitação pendente.</div>`) + fotosHTML();
 };
 
 const RULES = `rules_version = '2';
@@ -435,7 +459,12 @@ service cloud.firestore {
     match /users/{id} {
       allow read: if request.auth != null;
       allow create: if request.auth.uid == id && request.resource.data.role == 'funcionario' && request.resource.data.aprovado == false && request.resource.data.foto is string && request.resource.data.foto.size() > 100 && request.resource.data.foto.size() < 100000;
-      allow update: if request.auth != null && (role() == 'admin' || (request.auth.uid == id && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['foto','email']) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['email']) || request.resource.data.email == request.auth.token.email) && request.resource.data.foto is string && request.resource.data.foto.size() < 100000));
+      allow update: if request.auth != null && (role() == 'admin' || (request.auth.uid == id
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['foto','fotoPendente','email'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['email']) || request.resource.data.email == request.auth.token.email)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['foto']) || !(resource.data.get('foto', '') is string && resource.data.get('foto', '').size() > 100))
+        && request.resource.data.foto is string && request.resource.data.foto.size() < 100000
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['fotoPendente']) || (request.resource.data.fotoPendente is string && request.resource.data.fotoPendente.size() < 100000))));
       allow delete: if request.auth != null && role() == 'admin';
     }
     match /keys/{id} {
@@ -480,6 +509,7 @@ const loginHTML = () => `<div class="lw"><div class="lcard"><aside class="brand"
     <button class="sec" data-a="demo" data-id="admin@ifma.edu.br">Entrar como Admin</button>` : ''}</div></div></div>`;
 
 function render() {
+  hideZoom();
   const u = S.user;
   if (!u) { $('#app').innerHTML = loginHTML(); return; }
   if (u.aprovado === false) {
@@ -498,11 +528,11 @@ function render() {
   const tabs = TABS[u.role] || TABS.funcionario;
   if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
   const V = {minhas:vMinhas, unidade:vUnidade, fila:vFila, sol:vSol, hist:vHist, keys:vKeys, users:vUsers, guia:vGuia};
-  const npend = S.data.users.filter(x => x.aprovado === false).length;
+  const npend = S.data.users.filter(x => x.aprovado === false || (x.fotoPendente && x.aprovado !== false)).length;
   const papel = u.role === 'funcionario' && u.cargo ? u.cargo : ROLE[u.role];
   $('#app').innerHTML = `${B.demo ? '<div class="demo">Modo demonstração: dados em memória. Configure o Firebase para uso real.</div>' : ''}
     <header><div class="hb"><span class="hlogo"><img src="ifma.png" alt="IFMA" onerror="this.parentNode.style.display='none'"></span><div><h1>SAG-ZDC</h1><small>Sistema de Autorização e Guarda de Chaves V1.0<br><a href="https://zedoca.ifma.edu.br/" target="_blank" rel="noopener">IFMA Campus Zé Doca</a></small></div></div>
-    <div class="usr"><label title="Trocar foto" style="cursor:pointer;margin:0">${av(u.nome, u.foto)}<input id="fotoMe" type="file" accept="image/*" hidden></label><div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="conta">Minha conta</button><button class="out" data-a="logout">Sair</button></div></header>
+    <div class="usr">${av(u.nome, u.foto)}<div class="who"><b>${esc(u.nome)}</b><small>${esc(papel)}</small></div><button class="out" data-a="conta">Minha conta</button><button class="out" data-a="logout">Sair</button></div></header>
     <nav>${tabs.map(t => `<button class="${S.tab === t[0] ? 'on' : ''}" data-a="tab" data-id="${t[0]}">${t[1]}${t[0] === 'sol' && npend ? ` <span class="n">${npend}</span>` : ''}</button>`).join('')}</nav>
     <main id="main">${V[S.tab]()}</main>`;
 }
@@ -523,10 +553,34 @@ function openDel(k, user) {
   m.querySelector('input').focus();
 }
 function closeModal() { S.del = null; const m = $('#modal'); m.classList.remove('on'); m.innerHTML = ''; }
+function openFoto(im) {
+  hideZoom(); S.del = null;
+  const m = $('#modal');
+  m.innerHTML = `<div class="dlg" style="align-items:center;text-align:center"><img class="lbimg" src="${im.src}" alt="" data-a="closeModal"><b>${esc(im.alt)}</b><button type="button" class="sec" data-a="closeModal">Fechar</button></div>`;
+  m.classList.add('on');
+}
+function hideZoom() { $('#zoom').classList.remove('on'); }
+const canHover = matchMedia('(hover:hover)').matches;
+document.addEventListener('mouseover', e => {
+  const im = canHover && e.target.closest && e.target.closest('img.av');
+  if (!im) return hideZoom();
+  const z = $('#zoom'), r = im.getBoundingClientRect(), s = 220;
+  z.src = im.src;
+  let x = r.right + 10; if (x + s > innerWidth - 8) x = r.left - s - 10;
+  z.style.left = Math.max(8, x) + 'px';
+  z.style.top = Math.min(Math.max(8, r.top + r.height / 2 - s / 2), innerHeight - s - 8) + 'px';
+  z.classList.add('on');
+});
+addEventListener('scroll', hideZoom, true);
 function openConta() {
   S.del = null;
   const m = $('#modal');
   m.innerHTML = `<div class="dlg" style="max-height:92vh;overflow:auto"><h3>Minha conta</h3>
+    <div class="fld" style="gap:10px"><b>Foto de perfil</b>
+      <div class="ph">${av(S.user.nome, S.user.foto, 'lg')}${S.user.fotoPendente ? av('', S.user.fotoPendente, 'lg') : ''}</div>
+      <small>${S.user.fotoPendente ? 'À direita: nova foto aguardando autorização do administrador.' : (S.user.role === 'admin' ? 'Como administrador, a troca é imediata.' : 'A troca precisa ser autorizada pelo administrador.')}</small>
+      <input id="fotoReq" type="file" accept="image/*"></div>
+    <hr style="width:100%;border:0;border-top:1px solid #e2e8f0">
     <form id="fMail" class="fld" style="gap:10px" autocomplete="off"><b>Alterar e-mail</b><small>Atual: ${esc(S.user.email)}</small>
       <input name="novo" type="email" placeholder="Novo e-mail" required>
       <input name="senha" type="password" placeholder="Senha atual" autocomplete="current-password" required>
@@ -543,6 +597,8 @@ function openConta() {
 
 /* ===================== EVENTOS ===================== */
 document.addEventListener('click', async e => {
+  const im = e.target.closest('img.av');
+  if (im && !im.closest('#modal')) { openFoto(im); return; }
   const b = e.target.closest('[data-a]');
   if (!b || b.tagName === 'SELECT') return;
   const a = b.dataset.a, id = b.dataset.id;
@@ -563,6 +619,8 @@ document.addEventListener('click', async e => {
     else if (T[a]) { await B.act(a, id, S.user); toast('Registrado com sucesso.'); }
     else if (a === 'approve') { await B.setApproval(id, true); toast('Conta autorizada.'); }
     else if (a === 'reject') { await B.rejectUser(id); toast('Solicitação recusada.'); }
+    else if (a === 'photoOk') { await B.approveFoto(id, S.data.users.find(x => x.uid === id).fotoPendente); toast('Nova foto autorizada.'); }
+    else if (a === 'photoNo') { await B.rejectFoto(id); toast('Troca de foto recusada.'); }
     else if (a === 'delKey') {
       const k = S.data.keys.find(k => k.id === id);
       if (k.status !== 'disponivel') throw Error('Chave em uso não pode ser excluída.');
@@ -617,12 +675,13 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', async e => {
   const t = e.target;
-  if (t.id === 'foto' || t.id === 'fotoMe') {
+  if (t.id === 'foto' || t.id === 'fotoMe' || t.id === 'fotoReq') {
     const file = t.files[0]; if (!file) return;
     try {
       const f = await readFoto(file);
       if (t.id === 'foto') $('#pv').innerHTML = av('', f, 'lg');
-      else { await B.setFoto(S.user.uid, f); S.user.foto = f; toast('Foto atualizada.'); render(); }
+      else if (t.id === 'fotoReq' && S.user.role !== 'admin') { await B.requestFoto(S.user.uid, f); S.user.fotoPendente = f; toast('Solicitação enviada. Aguarde a autorização do administrador.'); openConta(); }
+      else { await B.setFoto(S.user.uid, f); S.user.foto = f; toast('Foto atualizada.'); render(); if (t.id === 'fotoReq') openConta(); }
     } catch (err) { toast(msg(err), 1); t.value = ''; }
     return;
   }
@@ -637,7 +696,7 @@ let unsub = null;
 function start(u) {
   if (unsub) { unsub(); unsub = null; }
   S.user = u; S.tab = null;
-  if (u && u.aprovado !== false) unsub = B.listen(u, d => { d.keys.sort((a, b) => a.nome.localeCompare(b.nome)); S.data = d; refresh(); });
+  if (u && u.aprovado !== false) unsub = B.listen(u, d => { d.keys.sort((a, b) => a.nome.localeCompare(b.nome)); if (d.me) S.user = d.me; S.data = d; refresh(); });
   else S.data = {keys:[], reqs:[], users:[]};
   render();
 }
